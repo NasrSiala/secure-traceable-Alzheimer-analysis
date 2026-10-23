@@ -1,0 +1,73 @@
+# --- Secrets (AGENTS.md « Secrets et données ») ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+/secrets/
+fabric/organizations/
+fabric/wallet/
+ledger-gateway/wallet/
+
+# --- Données ---
+# PTB-XL brut et caches de préparation (≈ 1 Go) : retéléchargés par ml/data.py
+ml/data/
+ml/cache/
+# Exports déchiffrés de cas : jamais versionnés (seuls hw/vectors/ptbxl/ le sont)
+hw/vectors/cases/
+# Volumes locaux (artefacts chiffrés, PostgreSQL, Fabric) et sauvegardes
+/data/
+/backups/
+*.dump
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+/dist/
+/build/
+
+# --- Modèle IA (poids publiés en pièce jointe de release, comme le bitstream) ---
+*.pt
+*.pth
+ml/runs/
+ml/checkpoints/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+ledger-gateway/dist/
+chaincode/provenance/dist/
+playwright-report/
+test-results/
+
+# --- Matériel : sorties de simulation et de Vivado/Vitis ---
+hw/sim/sim_build/
+hw/sim/results.xml
+hw/sim/*.vcd
+hw/sim/*.ghw
+hw/vivado/build/
+hw/ps_app/build/
+.Xil/
+*.jou
+vivado*.log
+vivado*.str
+*.bit
+*.xsa
+BOOT.bin
+
+# --- Outils et système ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
