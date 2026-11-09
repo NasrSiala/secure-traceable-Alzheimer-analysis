@@ -6,8 +6,12 @@
 *.pem
 /secrets/
 fabric/organizations/
+fabric/channel-artifacts/
+fabric/.runtime/
 fabric/wallet/
 ledger-gateway/wallet/
+*.crt
+*_sk
 
 # --- Données ---
 # PTB-XL brut et caches de préparation (≈ 1 Go) : retéléchargés par ml/data.py
