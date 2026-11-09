@@ -1,6 +1,6 @@
 # SAAMSTIAHF — After Action Reviews
 
-Suite version : 2.1.3 — 2026-11-09. Un AAR à chaque checkpoint de jalon (M1–M6), après une release, un incident, un retour arrière, ou un changement de suite touchant 3 documents ou plus. Format : prévu, réel, pourquoi l'écart, à garder, à changer, actions (responsable + échéance). Sans reproche : on décrit des décisions et des conditions, jamais des fautes individuelles.
+Suite version : 2.1.4 — 2026-11-09. Un AAR à chaque checkpoint de jalon (M1–M6), après une release, un incident, un retour arrière, ou un changement de suite touchant 3 documents ou plus. Format : prévu, réel, pourquoi l'écart, à garder, à changer, actions (responsable + échéance). Sans reproche : on décrit des décisions et des conditions, jamais des fautes individuelles.
 
 Gabarit :
 

@@ -1,6 +1,6 @@
 # SAAMSTIAHF — Matrice de traçabilité
 
-Suite version : 2.1.3 — 2026-11-09. Une ligne par story. Statuts : drafted → reviewed → ready → in build → done. Composants (SVC), interfaces (IF) : Architecture ; flux (DF), modes de défaillance (FM) : System Design.
+Suite version : 2.1.4 — 2026-11-09. Une ligne par story. Statuts : drafted → reviewed → ready → in build → done. Composants (SVC), interfaces (IF) : Architecture ; flux (DF), modes de défaillance (FM) : System Design.
 
 | Feature | Story | Priority | Acceptance criteria | Screens | Entities | Components | Flows | APIs / NFRs | UI components | Tasks | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|

@@ -2,7 +2,7 @@
 
 | Owner | Status | Version | Last updated | Suite version |
 |---|---|---|---|---|
-| Équipe projet | Approved scope (D-15) — plan recalé (D-17) | 2.1.3 | 2026-11-09 | 2.1.3 |
+| Équipe projet | Approved scope (D-15) — plan recalé (D-17) | 2.1.4 | 2026-11-09 | 2.1.4 |
 
 v2.0.0 : aucun développement n'a eu lieu entre le 2026-10-05 et le 2026-10-23 (AAR-01). Le plan est recalé sur 23/10 → 30/11, avec chevauchement des jalons, coupes D-17 et rééquilibrage des rôles (§3, §11).
 
@@ -11,14 +11,14 @@ v2.0.0 : aucun développement n'a eu lieu entre le 2026-10-05 et le 2026-10-23 (
 | Document | Version | Fait foi sur |
 |---|---|---|
 | [01-prd.md](01-prd.md) | 2.0.1 | Périmètre, priorités, stories, critères d'acceptation |
-| [02-trd.md](02-trd.md) | 2.0.3 | Stack, NFR, API publique, sécurité, environnements |
+| [02-trd.md](02-trd.md) | 2.0.4 | Stack, NFR, API publique, sécurité, environnements |
 | [03-architecture.md](03-architecture.md) | 1.0.2 | Où va le code (SVC), règles de dépendance, interfaces (IF), propriété des données, ADR, contrats matériels (§5.6) |
 | [04-backend-schema.md](04-backend-schema.md) + [schema.sql](schema.sql) | 2.0.3 | Données, contraintes, autorisations, enregistrements on-chain |
 | [05-system-design.md](05-system-design.md) | 1.0.2 | Flux (DF), budgets de latence, modes de défaillance (FM), tests de charge et de pannes |
 | [06-app-flow.md](06-app-flow.md) | 2.0.2 | Écrans, parcours, états, messages |
 | [07-design-brief.md](07-design-brief.md) | 2.0.1 | Tokens, composants, rendu |
-| [review.md](review.md) | 2.1.3 | Décisions (D-xx) — priment sur tout document plus ancien |
-| [aar.md](aar.md) | 2.1.3 | Actions des AAR en cours |
+| [review.md](review.md) | 2.1.4 | Décisions (D-xx) — priment sur tout document plus ancien |
+| [aar.md](aar.md) | 2.1.4 | Actions des AAR en cours |
 | [08-implementation-plan-L.md](08-implementation-plan-L.md) | 1.0.0 | Découpage des tâches de L en incréments, règles de livraison par incrément |
 
 En cas de conflit : décision D-xx > document propriétaire du sujet (tableau ci-dessus) > ce plan. Signaler le conflit dans `PROGRESS.md` (Issues) plutôt que trancher en silence.

@@ -1,6 +1,6 @@
 # AGENTS.md — SAAMSTIAHF
 
-Instructions pour tout agent de code (et tout membre de l'équipe) travaillant dans ce dépôt. Suite de specs v2.1.3 (8 documents).
+Instructions pour tout agent de code (et tout membre de l'équipe) travaillant dans ce dépôt. Suite de specs v2.1.4 (8 documents).
 
 ## À lire avant toute tâche
 

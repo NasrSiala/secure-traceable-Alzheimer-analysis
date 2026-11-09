@@ -1,6 +1,6 @@
 # SAAMSTIAHF — Revue de cohérence, questions et décisions
 
-Suite version : 2.1.3 — 2026-11-09 (règle de versions x.y.z, CHANGELOG ; contenu de la v2.0.0 : passage à la suite étendue à 8 documents ; plan recalé, D-15 à D-17). Les références de sections dans les lignes des versions 1.x (ex. « TRD §6.6 ») désignent la numérotation de l'époque ; depuis la v2.0.0, le contenu de l'ancien TRD §6 et §20 est dans l'Architecture §5 et §11.
+Suite version : 2.1.4 — 2026-11-09 (règle de versions x.y.z, CHANGELOG ; contenu de la v2.0.0 : passage à la suite étendue à 8 documents ; plan recalé, D-15 à D-17). Les références de sections dans les lignes des versions 1.x (ex. « TRD §6.6 ») désignent la numérotation de l'époque ; depuis la v2.0.0, le contenu de l'ancien TRD §6 et §20 est dans l'Architecture §5 et §11.
 
 ## Verdict : prêt pour l'implémentation — avec un risque de calendrier accepté (D-18)
 
@@ -14,7 +14,7 @@ Suite version : 2.1.3 — 2026-11-09 (règle de versions x.y.z, CHANGELOG ; cont
 | Chaque NFR a une preuve dans le System Design et une tâche de test dans le plan | ✓ (System Design §2 ; Plan Annexe B) |
 | DDL du schéma exécuté ; fichiers agents générés, règle AAR incluse | ✓ DDL inchangé, ré-exécuté le 2026-10-23 sur PostgreSQL 16.2 (0 erreur, 13 tables) ; `AGENTS.md` (section Checkpoint de jalon), `PROGRESS.md` |
 | `aar.md` existe avec le gabarit | ✓ AAR-01 et AAR-02 écrits (actions A-02.1 à A-02.6 ouvertes) |
-| Même version de suite sur tous les documents | ✓ 2.1.3 |
+| Même version de suite sur tous les documents | ✓ 2.1.4 |
 
 **Risque accepté (D-18) :** plan inchangé, 64,5 j de tâches pour 64 j-personne au maximum (5 j/semaine, 16 jours ouvrés du 2026-11-09 au 2026-11-30), sans marge : la moindre attente de dépendance ou absence fait manquer le 2026-11-30. Les coupes du plan §2 restent la seule soupape, sur décision de l'utilisateur. **À faire maintenant :** A-02.3 (noms de I, B, F) et T1.3 puis T1.4 (L), chemin critique de B. **Première tâche du plan :** T1.1 Monorepo (B), puis en parallèle T1.3 Spike Fabric (L), T1.6 PTB-XL (I), T1.7 Frontend (F) ; ensuite T1.9 Spike Zybo (L), T1.10 GHDL + cocotb (B), T1.11 contrôles d'architecture (B).
 

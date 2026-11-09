@@ -1,4 +1,4 @@
--- SAAMSTIAHF — schéma PostgreSQL 16 (Backend Schema v2.0.3, suite v2.1.3, 2026-11-09 — tables, colonnes et contraintes inchangées depuis la v1.0.0 ; privilèges resserrés)
+-- SAAMSTIAHF — schéma PostgreSQL 16 (Backend Schema v2.0.3, suite v2.1.4, 2026-11-09 — tables, colonnes et contraintes inchangées depuis la v1.0.0 ; privilèges resserrés)
 -- Source de vérité : docs/specs/04-backend-schema.md. Les migrations Alembic doivent reproduire ce fichier.
 -- Les tables de checkpoint LangGraph sont créées par langgraph-checkpoint-postgres dans le schéma `langgraph`.
 
