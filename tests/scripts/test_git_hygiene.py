@@ -44,6 +44,25 @@ def test_tracked_files_contain_no_wallet_key_or_certificate(repo_root: Path) -> 
     assert offenders == []
 
 
+def test_shell_scripts_are_executable_in_the_git_index(repo_root: Path) -> None:
+    """AUD-027: the documented `./fabric/network.sh` and `./scripts/test-l.sh` need mode 100755.
+
+    This host has core.fileMode=false, so Git never records the bit from a Windows
+    checkout; set it with `git update-index --chmod=+x <file>` (tracked) or
+    `git add --chmod=+x <file>` (new).
+    """
+    output = subprocess.check_output(
+        ["git", "ls-files", "-s", "--", "*.sh"],
+        cwd=repo_root,
+        text=True,
+        encoding="utf-8",
+    )
+    entries = [line.split("\t", 1) for line in output.splitlines() if "\t" in line]
+    assert entries, "no shell script is tracked"
+    offenders = [path for mode, path in entries if not mode.startswith("100755")]
+    assert offenders == []
+
+
 def test_generated_fabric_paths_are_ignored(repo_root: Path) -> None:
     samples = [
         "fabric/organizations/peerOrganizations/org1.example.com/peers/peer0/tls/server.key",

@@ -58,6 +58,91 @@ def test_host_ports_in_script_match_compose(repo_root: Path) -> None:
     assert set(declared.group(1).split()) == published
 
 
+def _services(compose: str) -> dict[str, str]:
+    """Split the `services:` block of compose.yaml into {service name: block text}."""
+    body = compose.split("\nservices:\n", 1)[1]
+    parts = re.split(r"^  ([a-z0-9-]+):\s*$", body, flags=re.MULTILINE)
+    return dict(zip(parts[1::2], parts[2::2], strict=True))
+
+
+def test_every_compose_service_carries_the_ownership_label(repo_root: Path) -> None:
+    """AUD-028: `network.sh stop` removes only containers labeled saam.network=medtrace.
+
+    A one-off container without the label (an interrupted build, for example) stays
+    attached to the project network and makes `stop`, and so the next `start`, fail.
+    """
+    compose = (repo_root / "fabric" / "compose" / "compose.yaml").read_text(
+        encoding="utf-8"
+    )
+    services = _services(compose)
+    assert {"ca-org1", "orderer", "peer0-org1", "cc-build", "gw-build", "spike"} <= set(
+        services
+    )
+    unlabeled = [
+        name
+        for name, block in services.items()
+        if not re.search(r"^\s+saam\.network: medtrace\s*$", block, re.MULTILINE)
+    ]
+    assert unlabeled == []
+
+
+def test_every_compose_image_is_pinned(repo_root: Path) -> None:
+    """AUD-035: exact version tag or digest, never a moving tag such as `20-bookworm`."""
+    compose = (repo_root / "fabric" / "compose" / "compose.yaml").read_text(
+        encoding="utf-8"
+    )
+    images = re.findall(r"^\s+image: (\S+)\s*$", compose, flags=re.MULTILINE)
+    assert len(images) == len(_services(compose))
+    unpinned = [
+        image
+        for image in images
+        if not re.search(r"@sha256:[0-9a-f]{64}$", image)
+        and not re.search(r":\d+\.\d+\.\d+$", image)
+    ]
+    assert unpinned == []
+
+
+def test_spike_container_does_not_see_the_organizations_tree(repo_root: Path) -> None:
+    """AUD-033: the spike runs npm code; it gets the wallet (identities and the peer's TLS
+    CA certificate), never the CA keys or the admin MSPs under organizations/."""
+    compose = (repo_root / "fabric" / "compose" / "compose.yaml").read_text(
+        encoding="utf-8"
+    )
+    block = _services(compose)["spike"]
+    mounts = re.findall(r"^\s+- (\S+:\S+)\s*$", block, flags=re.MULTILINE)
+    assert sorted(mounts) == ["../../ledger-gateway:/gw", "../wallet:/wallet:ro"]
+    assert "organizations" not in block
+    assert "PEER_TLS_CERT: /wallet/peer0-org1-tls-ca.crt" in block
+
+
+def test_cleaner_service_removes_generated_files_without_a_network(
+    repo_root: Path,
+) -> None:
+    """AUD-046: a root container deletes what root containers wrote; it must not
+    recreate the project network that `stop` has just removed."""
+    compose = (repo_root / "fabric" / "compose" / "compose.yaml").read_text(
+        encoding="utf-8"
+    )
+    block = _services(compose)["cleaner"]
+    assert "network_mode: none" in block
+    assert "- ..:/work/fabric" in block
+    assert 'profiles: ["tools"]' in block
+    assert "hyperledger/fabric-tools:2.5.16" in block
+
+
+def test_running_chaincode_services_mount_their_source_read_only(
+    repo_root: Path,
+) -> None:
+    """AUD-033: only the build service writes to the package directory."""
+    compose = (repo_root / "fabric" / "compose" / "compose.yaml").read_text(
+        encoding="utf-8"
+    )
+    services = _services(compose)
+    for name in ("cc-org1", "cc-org2"):
+        assert "- ../../chaincode/provenance:/src:ro" in services[name], name
+    assert "- ../../chaincode/provenance:/src\n" in services["cc-build"]
+
+
 def test_network_script_documents_lifecycle_and_refuses_broad_docker_cleanup(
     repo_root: Path,
     bash_run: Callable[..., CompletedProcess[str]],

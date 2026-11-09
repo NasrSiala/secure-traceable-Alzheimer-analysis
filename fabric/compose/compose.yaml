@@ -1,7 +1,9 @@
 # Isolated Fabric 2.5 test network for SAAMSTIAHF.
 # Project name, container names, volume names, and the Docker network are
 # prefixed with saam-medtrace so this file cannot remove another network.
-# Chaincode is a later increment: the Docker socket is intentionally not mounted.
+# Chaincode runs as an external service (chaincode as a service, profile "spike"), so the
+# Docker socket is intentionally not mounted. Every service, one-off ones included,
+# carries the label saam.network=medtrace: `network.sh stop` removes only labeled resources.
 # Published ports are bound to 127.0.0.1: host tooling is local, the network is not offered to the LAN.
 
 name: saam-medtrace
@@ -243,6 +245,7 @@ services:
       - ../organizations:/work/organizations
       - ../scripts:/work/scripts:ro
       - ../.runtime:/work/runtime:ro
+      - ../wallet:/work/wallet
     networks:
       saam-medtrace: {}
     restart: "no"
@@ -263,6 +266,121 @@ services:
       - ../config:/work/config:ro
       - ../scripts:/work/scripts:ro
       - ../.runtime:/work/runtime:ro
+    networks:
+      saam-medtrace: {}
+    restart: "no"
+
+  # Deletes the generated directories. Containers run as root, so on Linux (Docker Engine)
+  # they leave root-owned files in the bind mounts that the host user cannot remove.
+  # No project network: running it must not recreate the network `stop` has just removed.
+  cleaner:
+    image: hyperledger/fabric-tools:2.5.16
+    profiles: ["tools"]
+    labels:
+      saam.network: medtrace
+      saam.role: cleaner
+    working_dir: /work
+    entrypoint: ["sh"]
+    volumes:
+      - ..:/work/fabric
+    network_mode: none
+    restart: "no"
+
+  cc-build:
+    image: node:20.20.2-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
+    profiles: ["spike"]
+    labels:
+      saam.network: medtrace
+      saam.role: cc-build
+    working_dir: /src
+    volumes:
+      - ../../chaincode/provenance:/src
+    entrypoint: ["bash"]
+    networks:
+      saam-medtrace: {}
+    restart: "no"
+
+  gw-build:
+    image: node:20.20.2-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
+    profiles: ["spike"]
+    labels:
+      saam.network: medtrace
+      saam.role: gw-build
+    working_dir: /gw
+    volumes:
+      - ../../ledger-gateway:/gw
+    entrypoint: ["bash"]
+    networks:
+      saam-medtrace: {}
+    restart: "no"
+
+  cc-org1:
+    image: node:20.20.2-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
+    profiles: ["spike"]
+    container_name: saam-medtrace-cc-org1
+    hostname: saam-medtrace-cc-org1
+    labels:
+      saam.network: medtrace
+      saam.role: chaincode
+      saam.org: org1
+    working_dir: /src
+    environment:
+      CHAINCODE_ID: ${CHAINCODE_ID_ORG1:-pending}
+    volumes:
+      - ../../chaincode/provenance:/src:ro
+    entrypoint: ["node", "node_modules/fabric-shim/cli.js"]
+    command:
+      - server
+      - --chaincode-address
+      - 0.0.0.0:9999
+      - --chaincode-id
+      - ${CHAINCODE_ID_ORG1:-pending}
+    networks:
+      saam-medtrace: {}
+    restart: "no"
+
+  cc-org2:
+    image: node:20.20.2-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
+    profiles: ["spike"]
+    container_name: saam-medtrace-cc-org2
+    hostname: saam-medtrace-cc-org2
+    labels:
+      saam.network: medtrace
+      saam.role: chaincode
+      saam.org: org2
+    working_dir: /src
+    environment:
+      CHAINCODE_ID: ${CHAINCODE_ID_ORG2:-pending}
+    volumes:
+      - ../../chaincode/provenance:/src:ro
+    entrypoint: ["node", "node_modules/fabric-shim/cli.js"]
+    command:
+      - server
+      - --chaincode-address
+      - 0.0.0.0:9999
+      - --chaincode-id
+      - ${CHAINCODE_ID_ORG2:-pending}
+    networks:
+      saam-medtrace: {}
+    restart: "no"
+
+  spike:
+    image: node:20.20.2-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5
+    profiles: ["spike"]
+    labels:
+      saam.network: medtrace
+      saam.role: spike
+    working_dir: /gw
+    volumes:
+      - ../../ledger-gateway:/gw
+      - ../wallet:/wallet:ro
+    environment:
+      WALLET_DIR: /wallet
+      PEER_ENDPOINT: peer0.org1.example.com:7051
+      PEER_TLS_CERT: /wallet/peer0-org1-tls-ca.crt
+      CHANNEL_NAME: medtrace
+      CHAINCODE_NAME: identity-spike
+    entrypoint: ["npm", "run", "spike:submit"]
     networks:
       saam-medtrace: {}
     restart: "no"
