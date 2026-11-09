@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | TRD | Architecture | Schema | App Flow |
 |---|---|---|---|---|---|---|---|---|---|
-| Équipe projet (B) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.1 | 2026-10-23 | 2.0.1 | [02-trd.md](02-trd.md) | [03-architecture.md](03-architecture.md) | [04-backend-schema.md](04-backend-schema.md) | [06-app-flow.md](06-app-flow.md) |
+| Équipe projet (B) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.2 | 2026-11-09 | 2.1.3 | [02-trd.md](02-trd.md) | [03-architecture.md](03-architecture.md) | [04-backend-schema.md](04-backend-schema.md) | [06-app-flow.md](06-app-flow.md) |
 
 ## 1. Objet et périmètre
 
@@ -184,7 +184,7 @@ Aucun autre cache : les lectures sont déjà sous 50 ms (DF-03), et une empreint
 ## 9. Limitation de débit et contre-pression
 
 - `/auth/login` : 10 req/min/IP ; `POST /cases` : 10 req/min/utilisateur ; téléversement ≤ 20 Mo (TRD §8).
-- Contre-pression : un seul job à la fois ; les cas suivants restent `en_attente` (≈ 27 s chacun). Avec 10 cas en file, le dernier démarre après ≈ 4,5 min ; l'interface l'affiche (S-04 « en attente »).
+- Contre-pression : un seul job à la fois ; les cas suivants restent `en_attente` (≈ 27 s chacun). Avec 10 cas en file, le dernier termine après ≈ 4,5 min (il démarre après ≈ 4 min) ; l'interface l'affiche (S-04 « en attente »).
 - Pas de délestage nécessaire à ≤ 5 utilisateurs.
 
 ## 10. Montée en charge

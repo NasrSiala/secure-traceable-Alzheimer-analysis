@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | PRD | App Flow | TRD |
 |---|---|---|---|---|---|---|---|---|
-| Équipe projet | Encadrant `[TBD: nom, Q-12]` | In review | 2.0.1 | 2026-10-23 | 2.0.1 | [01-prd.md](01-prd.md) | [06-app-flow.md](06-app-flow.md) | [02-trd.md](02-trd.md) |
+| Équipe projet | Encadrant `[TBD: nom, Q-12]` | In review | 2.0.1 | 2026-10-23 | 2.1.3 | [01-prd.md](01-prd.md) | [06-app-flow.md](06-app-flow.md) | [02-trd.md](02-trd.md) |
 
 ## 1. Objectifs de design et critères de succès
 

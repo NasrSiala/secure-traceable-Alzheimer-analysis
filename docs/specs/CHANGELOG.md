@@ -18,6 +18,54 @@ Règles :
 - Tags git du logiciel : `v0.y.z` pendant le développement, `v1.0.0` à la soutenance.
 - Les versions écrites avant cette règle (1.0, 1.1, 2.0) se lisent 1.0.0, 1.1.0 et 2.0.0 ; elles ont été réécrites ainsi dans la v2.0.1.
 
+## Suite v2.1.3 — 2026-11-09
+**Change:** table complète des erreurs de la passerelle ledger (IF-09) et du client (IF-07), issue de l'audit de code (AUD-011).  **Requested by:** utilisateur  **Decision:** accord de l'utilisateur (L), 2026-11-09 ; à confirmer par B (T2.7, `LedgerClient`)  **From audit:** AUD-011
+
+- Architecture v1.0.2 : IF-09, `code` = code du chaincode ; 401 jeton, 403 `FORBIDDEN`, 404 absent, 409 `DUPLICATE`, 400 `SCHEMA`, 422 `PARENT_MISSING`, 502 Fabric injoignable. IF-07, exceptions ajoutées avec leur statut : `InvalidRecord` (400, 422), `LedgerForbidden` (401, 403) en plus de `LedgerUnavailable` (502), `DuplicateRecord` (409), `RecordNotFound` (404). Correctif : le 403 était déjà prévu par le plan de L (l08) ; aucun code n'est implémenté.
+- Plan v2.1.3 : §1, versions recalées. Version de suite dans les en-têtes de tous les documents, AGENTS.md, PROGRESS.md et `schema.sql` : 2.1.3. Autres documents inchangés sur le fond.
+- Pour l05, l06, l08 (passerelle, chaincode) et T2.7 : utiliser cette table.
+
+## Suite v2.1.2 — 2026-11-09
+**Change:** moindre privilège des rôles de base dans `schema.sql`, décidé après l'audit de code (`audit/AUDIT_REPORT.md`).  **Requested by:** utilisateur  **Decision:** accord de l'utilisateur, 2026-11-09  **From audit:** AUD-002, AUD-008, AUD-009
+
+- Backend Schema v2.0.3 : `schema.sql`, section des privilèges seulement — `app_worker` ne lit plus `users`, `refresh_tokens`, `login_attempts` ; `UPDATE` par colonnes sur `validation_configs` (`is_active`) et sur `artifacts` (`anchor_status`, `anchor_attempts`, `tx_id`, `anchored_at`), conformément à Schema §5.1 et §10 ; `app_api` peut supprimer dans `login_attempts` (rétention 30 jours, Schema §16). Tables, colonnes, contraintes et index inchangés : traité en correctif car aucun consommateur n'existe encore et les règles écrites du Schema §10 et §16 sont désormais appliquées par la base. Vérifié sur PostgreSQL 16 : 23 contrôles de privilèges passent (`audit/tools/verify_schema_patch.sh`).
+- Plan v2.1.2 : §1, versions recalées. Version de suite dans les en-têtes de tous les documents, AGENTS.md et PROGRESS.md : 2.1.2. Autres documents inchangés sur le fond.
+- Pour T2.1 : la migration Alembic initiale doit reproduire ces privilèges (`tests/db/test_grants.py`, T1.11).
+
+## Suite v2.1.1 — 2026-11-09
+**Change:** correctifs issus de l'audit de code (`audit/AUDIT_REPORT.md`) : rôle de base de `registry.py`, références et versions périmées, commentaire d'en-tête de `schema.sql`.  **Requested by:** utilisateur (audit de code)  **Decision:** —  **From audit:** AUD-003, AUD-012 à AUD-016, AUD-019
+
+- TRD v2.0.3 : §8.1, `scripts/registry.py` s'exécute avec le rôle `app_api` (le seul autorisé à écrire `validation_configs` dans `schema.sql`), `register_model.py` avec `app_worker` ; §2, préfixe `/api/v1` dans deux lignes.
+- Plan v2.1.1 : §1, versions des documents sources recalées (TRD 2.0.3, Backend Schema 2.0.2, System Design 1.0.2, App Flow 2.0.2, review et aar 2.1.1) ; T1.9, renvoi à Architecture §5.6 ; Annexe A, T2.5b rattachée à US-04.
+- System Design v1.0.2 : §9, le dixième cas en file « termine » (et non « démarre ») après ≈ 4,5 min.
+- Backend Schema v2.0.2 : `schema.sql`, commentaire d'en-tête (chemin `04-backend-schema.md`, versions) ; DDL inchangé, rechargé sur PostgreSQL 16 (0 erreur, 13 tables).
+- traceability.md : T2.5b rattachée à US-04 ; T3.16b, S-02, T3.13, T3.14, T2.1, T2.2, T5.2, T5.5, T5.6, T6.1, T6.2 et T6.4 ajoutés aux éléments justifiés.
+- Version de suite dans les en-têtes de tous les documents, dans AGENTS.md et PROGRESS.md : 2.1.1. PRD, Architecture, App Flow, Design Brief et plan de L gardent leur version.
+- Non appliqué (décision requise) : moindre privilège des rôles de base dans `schema.sql` (AUD-002, AUD-008, AUD-009, correctif prêt dans `audit/proposals/`), table des codes d'erreur IF-09 (AUD-011).
+- Non affecté sur le fond (vérifié) : périmètre, exigences, DDL, contrats, tâches et dates du plan.
+
+## Suite v2.1.0 — 2026-11-09
+**Change:** plan d'implémentation dédié au rôle L, itératif et incrémental ; règle de livraison par incrément (tests, branche du nom de l'incrément, merge request vers `main`).  **Requested by:** Nasr Siala (L)  **Decision:** D-19
+
+- Plan de L v1.0.0 (nouveau document, `08-implementation-plan-L.md`) : 26 incréments pour les 18 tâches de L et leur part de T6.2 et T6.3 (17,6 j), 4 itérations plus une clôture, règles de livraison, suite de tests L, dépendances externes, capacité.
+- Plan v2.1.0 : §1 (lien vers le plan de L), §3, §4 (règle de livraison par incrément), §5 (commande `./scripts/test-l.sh`). Tâches, DoD et dates inchangés.
+- AGENTS.md : section « Livraison par incrément », déroulement, convention de branche et de merge request, commande `test-l.sh`, dossier `tests/fabric/`.
+- review.md : D-19 ; PROGRESS.md : lien vers le plan de L.
+- Version de suite dans les en-têtes des huit documents et du plan de L : 2.1.0. PRD, TRD, Architecture, Backend Schema, System Design, App Flow et Design Brief gardent leur version.
+- Non affecté sur le fond (vérifié) : périmètre, exigences, DDL, contrats, tâches du plan 08, traceability.md (mêmes T-ID).
+
+## Suite v2.0.2 — 2026-11-09
+**Change:** nom du membre L (A-01.1 partielle) ; AAR-02 ; décision D-18 (plan inchangé, risque de calendrier accepté) ; correction de 5 lignes de tableau mal rendues.  **Requested by:** Nasr Siala (L)  **Decision:** D-18  **From AAR:** A-01.1, AAR-02
+
+- Plan v2.0.2 : §3, L = Nasr Siala ; §12, risque de calendrier (D-18) ; versions de review.md et aar.md au §1.
+- TRD v2.0.2 : deux lignes de tableau (`|` dans du code) échappées, sans changement de sens (§8.1).
+- App Flow v2.0.2 : trois lignes de tableau échappées de la même façon (§5, §10).
+- aar.md : statuts des actions A-01.x, AAR-02 (6 actions).
+- review.md : I-30 ajouté puis accepté (D-18), verdict « prêt, risque de calendrier accepté », Q-11 et Q-12 mises à jour, Q-15 ajoutée, D-18.
+- PROGRESS.md : état au 2026-11-09 ; AGENTS.md, traceability.md, `schema.sql` : version de suite.
+- Version de suite dans les en-têtes des huit documents : 2.0.2. PRD, Architecture, Backend Schema, System Design et Design Brief gardent leur version.
+- Non affecté sur le fond (vérifié) : périmètre, exigences, DDL, contrats, tâches du plan. Les dates de M1 et M2 sont dépassées mais inchangées, conformément à D-18.
+
 ## Suite v2.0.1 — 2026-10-23
 **Change:** adoption de la politique de versions x.y.z (correctif : aucun changement de contenu).  **Requested by:** utilisateur  **Decision:** —
 

@@ -1,5 +1,5 @@
--- SAAMSTIAHF — schéma PostgreSQL 16 (Backend Schema v2.0.1, suite v2.0.1, 2026-10-23 — DDL inchangé depuis la v1.0.0)
--- Source de vérité : docs/specs/03-backend-schema.md. Les migrations Alembic doivent reproduire ce fichier.
+-- SAAMSTIAHF — schéma PostgreSQL 16 (Backend Schema v2.0.3, suite v2.1.3, 2026-11-09 — tables, colonnes et contraintes inchangées depuis la v1.0.0 ; privilèges resserrés)
+-- Source de vérité : docs/specs/04-backend-schema.md. Les migrations Alembic doivent reproduire ce fichier.
 -- Les tables de checkpoint LangGraph sont créées par langgraph-checkpoint-postgres dans le schéma `langgraph`.
 
 BEGIN;
@@ -256,20 +256,27 @@ END $$;
 GRANT USAGE ON SCHEMA public TO app_api, app_worker;
 GRANT USAGE, CREATE ON SCHEMA langgraph TO app_worker;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO app_api, app_worker;
+-- le worker ne lit ni les comptes, ni les jetons de rafraîchissement, ni les tentatives de connexion
+REVOKE SELECT ON users, refresh_tokens, login_attempts FROM app_worker;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO app_api, app_worker;
 
 -- api : authentification, création de cas, vérifications, administration, audit
-GRANT INSERT, UPDATE         ON users, validation_configs           TO app_api;
+GRANT INSERT, UPDATE         ON users                               TO app_api;
+GRANT INSERT                 ON validation_configs                  TO app_api;   -- lignes jamais modifiées (Schema §5.1)
+GRANT UPDATE (is_active)     ON validation_configs                  TO app_api;   -- scripts/registry.py config activate
 GRANT INSERT, UPDATE, DELETE ON refresh_tokens                      TO app_api;
 GRANT INSERT                 ON login_attempts, cases, jobs,
                                 verifications, verification_items,
                                 audit_events                        TO app_api;
 GRANT UPDATE (is_active)     ON models                              TO app_api;
 GRANT DELETE                 ON cases                               TO app_api;   -- purge admin (cascade)
+GRANT DELETE                 ON login_attempts                      TO app_api;   -- rétention 30 jours (Schema §16)
 
 -- worker : exécution du pipeline
 GRANT UPDATE                 ON cases, jobs                         TO app_worker;
-GRANT INSERT, UPDATE         ON artifacts                           TO app_worker;
+GRANT INSERT                 ON artifacts                           TO app_worker;
+GRANT UPDATE (anchor_status, anchor_attempts, tx_id, anchored_at)
+                             ON artifacts                           TO app_worker;   -- sha256, type, parent jamais modifiés (Schema §10)
 GRANT INSERT                 ON artifact_files, agent_logs,
                                 audit_events                        TO app_worker;
 GRANT INSERT, UPDATE         ON models                              TO app_worker; -- scripts/register_model.py

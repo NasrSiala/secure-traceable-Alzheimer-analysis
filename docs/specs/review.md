@@ -1,22 +1,22 @@
 # SAAMSTIAHF — Revue de cohérence, questions et décisions
 
-Suite version : 2.0.1 — 2026-10-23 (règle de versions x.y.z, CHANGELOG ; contenu de la v2.0.0 : passage à la suite étendue à 8 documents ; plan recalé, D-15 à D-17). Les références de sections dans les lignes des versions 1.x (ex. « TRD §6.6 ») désignent la numérotation de l'époque ; depuis la v2.0.0, le contenu de l'ancien TRD §6 et §20 est dans l'Architecture §5 et §11.
+Suite version : 2.1.3 — 2026-11-09 (règle de versions x.y.z, CHANGELOG ; contenu de la v2.0.0 : passage à la suite étendue à 8 documents ; plan recalé, D-15 à D-17). Les références de sections dans les lignes des versions 1.x (ex. « TRD §6.6 ») désignent la numérotation de l'époque ; depuis la v2.0.0, le contenu de l'ancien TRD §6 et §20 est dans l'Architecture §5 et §11.
 
-## Verdict : prêt pour l'implémentation
+## Verdict : prêt pour l'implémentation — avec un risque de calendrier accepté (D-18)
 
 | Critère | État |
 |---|---|
 | Les 8 documents existent et passent leurs contrôles propres | ✓ (Architecture et System Design créés en v2.0.0) |
-| Aucun problème bloquant ou majeur ouvert (mineurs listés et acceptés) | ✓ (29 problèmes : 29 corrigés) |
+| Aucun problème bloquant ou majeur ouvert (mineurs listés et acceptés) | ✓ (30 problèmes : 29 corrigés ; I-30, majeur, accepté par l'utilisateur via D-18 — voir le risque ci-dessous) |
 | Aucune question ouverte bloquant une tâche de M1 à M3 | ✓ (8 questions ouvertes, aucune ne bloque une tâche de M1 à M3 ; Q-11 en retard est suivie par l'action A-01.1, Q-12 par A-01.4) |
 | Périmètre du PRD confirmé par l'utilisateur | ✓ D-02, D-10 ; validé tel quel par l'encadrant (D-15) |
 | Matrice de traçabilité complète pour toutes les stories P0/P1, statut `ready` | ✓ (colonnes Composants et Flux ajoutées ; US-14 reportée, D-17) |
 | Chaque NFR a une preuve dans le System Design et une tâche de test dans le plan | ✓ (System Design §2 ; Plan Annexe B) |
 | DDL du schéma exécuté ; fichiers agents générés, règle AAR incluse | ✓ DDL inchangé, ré-exécuté le 2026-10-23 sur PostgreSQL 16.2 (0 erreur, 13 tables) ; `AGENTS.md` (section Checkpoint de jalon), `PROGRESS.md` |
-| `aar.md` existe avec le gabarit | ✓ AAR-01 écrit (6 actions, 5 ouvertes) |
-| Même version de suite sur tous les documents | ✓ 2.0.1 |
+| `aar.md` existe avec le gabarit | ✓ AAR-01 et AAR-02 écrits (actions A-02.1 à A-02.6 ouvertes) |
+| Même version de suite sur tous les documents | ✓ 2.1.3 |
 
-**Avant la première tâche :** A-01.1 (noms et rôles) et A-01.2 (dépôt GitHub). **Première tâche :** T1.1 Monorepo (B), puis en parallèle T1.3 Spike Fabric (L), T1.6 PTB-XL (I), T1.7 Frontend (F) ; ensuite T1.9 Spike Zybo (L), T1.10 GHDL + cocotb (B), T1.11 contrôles d'architecture (B).
+**Risque accepté (D-18) :** plan inchangé, 64,5 j de tâches pour 64 j-personne au maximum (5 j/semaine, 16 jours ouvrés du 2026-11-09 au 2026-11-30), sans marge : la moindre attente de dépendance ou absence fait manquer le 2026-11-30. Les coupes du plan §2 restent la seule soupape, sur décision de l'utilisateur. **À faire maintenant :** A-02.3 (noms de I, B, F) et T1.3 puis T1.4 (L), chemin critique de B. **Première tâche du plan :** T1.1 Monorepo (B), puis en parallèle T1.3 Spike Fabric (L), T1.6 PTB-XL (I), T1.7 Frontend (F) ; ensuite T1.9 Spike Zybo (L), T1.10 GHDL + cocotb (B), T1.11 contrôles d'architecture (B).
 
 ## Problèmes
 
@@ -51,6 +51,7 @@ Suite version : 2.0.1 — 2026-10-23 (règle de versions x.y.z, CHANGELOG ; cont
 | I-27 | minor | Architecture | Le diagramme des composants montrait une flèche aller-retour pipeline ↔ cases (cycle apparent) | Une seule direction : SVC-pipeline → SVC-cases (IF-02, IF-03) | fixed |
 | I-28 | minor | PRD, Schema, Design Brief | Restes de libellés de semaines (S1–S8, « semaine 7 ») après recalage | Remplacés par jalons et dates | fixed |
 | I-29 | minor | TRD, App Flow, Design Brief | Endpoints et écrans d'administration des seuils et modèles conservés après la coupe D-17 | Endpoints barrés ; S-09/S-10 retirés ; `scripts/registry.py` (T4.7) | fixed |
+| I-30 | major | Plan, PRD, System Design | Jalons M1 (2026-10-28) et M2 (porte 2026-11-03) manqués, 0 tâche sur 18 commencée pour L (AAR-02) ; capacité de L du 09/11 au 30/11 ≈ 13 j pour 17,6 j de tâches, sans compter les attentes de dépendance ; dates du plan §7, §11 et PRD §15 périmées | Décision de l'utilisateur sur les coupes ou la redistribution (D-18), puis plan mis à jour, puis AAR | accepted — D-18 (2026-11-09) |
 
 **Contrôles v1.1.0 (volet VHDL) passés sans écart :** F-18–F-20 couvertes dans les 6 documents (TRD §2/§6.6, Schema §5.3/§14, App Flow J-10/J-11 + spécification CLI, Design Brief sortie console, Plan T1.9–T6.5) ; gabarit FIR identique entre AC-16.1 et TRD §6.6 ; 1 011 sorties / 5 000 + 55 entrées cohérentes partout ; NFR-20 (15 s) identique entre TRD, App Flow et Plan ; aucun appel du pipeline vers la carte (D-11) dans le TRD, l'App Flow ou le Plan ; nouvelles dépendances listées au TRD §18 ; dépendances des tâches dans un ordre valide.
 
@@ -70,10 +71,11 @@ Suite version : 2.0.1 — 2026-10-23 (règle de versions x.y.z, CHANGELOG ; cont
 | Q-08 | Politique d'endossement | Force de la preuve multi-organisation | AND(Org1,Org2) / Org1 seule | AND(Org1,Org2) | T2.5a | closed (D-07) |
 | Q-09 | Purge des données après la soutenance | Rétention (Schema §16) | Purge immédiate / conserver pour le rapport | Conserver jusqu'à la note finale, puis purge + destruction du réseau | — | open — propriétaire : équipe, échéance 2026-11-30 |
 | Q-10 | Outil de maquette (Figma ou code direct) et logo dessiné | Organisation du travail front | Figma / code + Storybook | Code direct + Storybook optionnel (gain de temps) ; logotype texte suffisant | — (non bloquant) | open (en retard) — propriétaire : F, échéance reportée au 2026-10-28 (M1) |
-| Q-11 | Noms des 4 membres et attribution des rôles L/I/B/F | Responsables des tâches | — | Attribution avant la première tâche | — (tâches attribuées par rôle ; cause de l'AAR-01) | open (en retard, escaladée) — action A-01.1, échéance 2026-10-24 |
-| Q-12 | Nom de l'encadrant et dates des portes humaines recalées (M2 le 2026-11-03, M6 le 2026-11-27) | Approbations | — | Proposer ces dates à l'encadrant | Porte M2 (pas une tâche) | open — action A-01.4, échéance 2026-10-27 |
+| Q-11 | Noms des 4 membres et attribution des rôles L/I/B/F | Responsables des tâches | — | Attribution avant la première tâche | — (tâches attribuées par rôle ; cause de l'AAR-01) | partiellement close : L = Nasr Siala (2026-11-09) ; I, B, F à nommer — escaladée (A-01.1 ouverte à AAR-01 et AAR-02), action A-02.3, échéance 2026-11-10 |
+| Q-12 | Nom de l'encadrant et dates des portes humaines recalées (M2 le 2026-11-03, M6 le 2026-11-27) | Approbations | — | Proposer ces dates à l'encadrant | Porte M2 (pas une tâche) | open (en retard, escaladée) — action A-02.4 (reprend A-01.4), échéance 2026-11-11 |
 | Q-13 | Disponibilité de la carte Zybo Z7-10 | Spike T1.9 en S1, étape 9 en soutenance | Équipe / labo / plus tard | — | T1.9 | closed (D-14) |
-| Q-14 | Édition et licence de Vivado installée (couvre-t-elle le XC7Z010 ?) ; licence des fichiers de carte Digilent | Build matériel, redistribution des fichiers de carte | Édition gratuite / sous licence | Vérifier dans Vivado (`Help › Manage License`) et dans le dépôt Digilent | — (non bloquant : vérifié dès T1.9 ; le XC7Z010 est un composant d'entrée de gamme) | open (en retard) — propriétaire : L, échéance reportée au 2026-10-28 (T1.9) |
+| Q-14 | Édition et licence de Vivado installée (couvre-t-elle le XC7Z010 ?) ; licence des fichiers de carte Digilent | Build matériel, redistribution des fichiers de carte | Édition gratuite / sous licence | Vérifier dans Vivado (`Help › Manage License`) et dans le dépôt Digilent | — (non bloquant : vérifié dès T1.9 ; le XC7Z010 est un composant d'entrée de gamme) | open (en retard) — propriétaire : L, échéance reportée au 2026-11-12 (T1.9) |
+| Q-15 | La porte encadrant M2 du 2026-11-03 a-t-elle eu lieu ? Quelle a été la réponse ? | Approbation du recalage et des coupes | — | L'équipe le dit à l'ouverture de A-02.1 | Plan §7 (pas une tâche) | open — propriétaire : Nasr Siala, échéance 2026-11-11 |
 
 ## Décisions
 
@@ -96,3 +98,5 @@ Suite version : 2.0.1 — 2026-10-23 (règle de versions x.y.z, CHANGELOG ; cont
 | D-15 | — | La présentation de vision (périmètre, choix techniques, prétraitement FIR, démo en 9 étapes, calendrier) est validée telle quelle par l'encadrant | Encadrant (rapporté par l'utilisateur) | 2026-10-23 (date de la validation `[TBD]`) | PRD (statut Approved), TRD, Plan |
 | D-16 | Q-02 (date) | Soutenance le 2026-11-30 | Utilisateur | 2026-10-23 | PRD §12, Plan §7, §11 |
 | D-17 | AAR-01 | Aucun développement depuis le 2026-10-06 : plan recalé sur 23/10 → 30/11 ; toutes les P0 conservées (dont VHDL) ; coupes : F-16/US-14 (saillance), écrans S-09/S-10 (remplacés par `scripts/registry.py`), tests d'utilisabilité à 2 testeurs ; jalons chevauchants | Utilisateur | 2026-10-23 | PRD, TRD, App Flow, Design Brief, Plan, traceability |
+| D-18 | A-02.1, I-30 | Plan inchangé : périmètre P0 complet (VHDL, carte et étape 9 inclus), soutenance du 2026-11-30 maintenue, aucune coupe ni redistribution. L'équipe n'a rien commencé au 2026-11-09. Risque accepté : 64,5 j de tâches pour 64 j-personne au maximum (5 j/semaine), 51 j à 4 j/semaine, sans marge | Utilisateur (Nasr Siala) | 2026-11-09 | review.md, aar.md, Plan §12, PROGRESS.md |
+| D-19 | — | Livraison par incrément : après chaque incrément, créer les tests (nouvelles fonctions, régression, anciens tests mis à jour), commit, push sur une branche portant le nom de l'incrément, merge request vers `main` ; plan d'implémentation dédié à L, itératif et incrémental | Utilisateur (Nasr Siala) | 2026-11-09 | AGENTS.md, Plan 08 (§1, §3, §4, §5), 08-implementation-plan-L.md |
