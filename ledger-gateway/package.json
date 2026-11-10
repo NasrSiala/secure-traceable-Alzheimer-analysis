@@ -5,7 +5,8 @@
   "scripts": {
     "build": "node node_modules/typescript/bin/tsc",
     "test": "node node_modules/typescript/bin/tsc --noEmit",
-    "spike:submit": "node dist/spike-submit.js"
+    "spike:submit": "node dist/spike-submit.js",
+    "spike:latency": "node dist/spike-latency.js"
   },
   "dependencies": {
     "@grpc/grpc-js": "1.14.7",
