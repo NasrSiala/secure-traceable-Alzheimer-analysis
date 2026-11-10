@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install, approve, and commit the attribute-reading demo chaincode.
+# Install, approve, and commit the provenance chaincode.
 # Package identifiers are the only lines written to stdout.
 # Safe to run again on a live network: the packages are byte-identical from one run
 # to the next, so the install is a no-op, and a definition that is already committed
@@ -13,7 +13,7 @@ export CORE_PEER_TLS_ENABLED=true
 ORDERER=orderer.example.com:7050
 ORDERER_CA=/work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
 CHANNEL=medtrace
-CC_NAME=identity-spike
+CC_NAME=provenance
 POLICY="AND('Org1MSP.peer','Org2MSP.peer')"
 ORG1=/work/organizations/peerOrganizations/org1.example.com
 ORG2=/work/organizations/peerOrganizations/org2.example.com
@@ -97,7 +97,7 @@ require_approved() {
   actual=$(approved_package_id)
   if [[ "${actual}" != "${expected}" ]]; then
     echo "${CC_NAME} is already committed with a different package for ${CORE_PEER_LOCALMSPID}." >&2
-    echo "This demo does not upgrade a definition: run fabric/network.sh stop, then start." >&2
+    echo "This network does not upgrade a definition: run fabric/network.sh stop, then start." >&2
     exit 1
   fi
 }

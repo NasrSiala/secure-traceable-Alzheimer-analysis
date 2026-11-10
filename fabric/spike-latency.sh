@@ -29,7 +29,7 @@ host_can_run() {
 # carries are read here and handed over. The probe reads the same files when started alone.
 read_settings() {
   local policy_line batch_line
-  policy_line=$(grep -E '^POLICY=' "${FABRIC_DIR}/scripts/deploy-identity-spike.sh" | head -1 || true)
+  policy_line=$(grep -E '^POLICY=' "${FABRIC_DIR}/scripts/deploy-chaincode.sh" | head -1 || true)
   ENDORSEMENT_POLICY=${policy_line#POLICY=}
   ENDORSEMENT_POLICY=${ENDORSEMENT_POLICY//$'\r'/}
   ENDORSEMENT_POLICY=${ENDORSEMENT_POLICY#\"}

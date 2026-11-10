@@ -123,9 +123,9 @@ def test_sources_name_nine_identities_and_refuse_writes_without_the_agent_role()
     )
     for name in EXPECTED:
         assert name in enroll or name.removeprefix("agent-") in enroll
-    chaincode = (
-        ROOT / "chaincode" / "provenance" / "src" / "identity-spike.ts"
-    ).read_text(encoding="utf-8")
+    chaincode = (ROOT / "chaincode" / "provenance" / "src" / "artifact.ts").read_text(
+        encoding="utf-8"
+    )
     assert 'role !== "pipeline-agent"' in chaincode
     assert "FORBIDDEN" in chaincode
     gateway = json.loads(
@@ -187,11 +187,17 @@ def test_enrolled_identities_authorize_agent_writes_and_refuse_verifier(
     assert ignored.returncode == 0
 
     accepted = _spike(bash_run, "agent-ingestion", "write", "ingestion-probe")
-    _assert_ok(accepted, "agent-ingestion write")
+    _assert_ok(accepted, "agent-ingestion create")
     record = _json_object(accepted.stdout)
-    assert record["role"] == "pipeline-agent"
-    assert record["agent"] == "ingestion"
-    assert record["mspId"] == "Org1MSP"
+    assert record["docType"] == "artifact"
+    assert record["artifactType"] == "original"
+    assert record["creatorAgent"] == "ingestion"
+    assert record["creatorMspId"] == "Org1MSP"
+    assert "CN=agent-ingestion" in str(record["creatorId"])
+
+    duplicate = _spike(bash_run, "agent-ingestion", "write", "ingestion-probe")
+    assert duplicate.returncode != 0
+    assert "DUPLICATE" in duplicate.stdout + duplicate.stderr
 
     refused = _spike(bash_run, "verifier", "write", "verifier-probe")
     assert refused.returncode != 0
@@ -199,7 +205,10 @@ def test_enrolled_identities_authorize_agent_writes_and_refuse_verifier(
 
     visible = _spike(bash_run, "verifier", "read", "ingestion-probe")
     _assert_ok(visible, "verifier read")
-    assert _json_object(visible.stdout)["agent"] == "ingestion"
+    read_back = _json_object(visible.stdout)
+    assert read_back["artifactId"] == record["artifactId"]
+    assert read_back["sha256"] == record["sha256"]
+    assert read_back["creatorAgent"] == "ingestion"
 
     # AUD-029, AUD-031: the whole enrollment and deployment can run again on the
     # live network. Fresh keys are enrolled, the committed definition is checked
@@ -212,5 +221,5 @@ def test_enrolled_identities_authorize_agent_writes_and_refuse_verifier(
         assert attributes.get("role") == role
         assert attributes.get("agent") == agent
     again = _spike(bash_run, "agent-ingestion", "write", "ingestion-probe-again")
-    _assert_ok(again, "agent-ingestion write after the second enrollment")
-    assert _json_object(again.stdout)["agent"] == "ingestion"
+    _assert_ok(again, "agent-ingestion create after the second enrollment")
+    assert _json_object(again.stdout)["creatorAgent"] == "ingestion"

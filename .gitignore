@@ -49,6 +49,7 @@ node_modules/
 frontend/dist/
 ledger-gateway/dist/
 chaincode/provenance/dist/
+chaincode/provenance/dist-test/
 playwright-report/
 test-results/
 

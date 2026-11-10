@@ -379,7 +379,7 @@ services:
       PEER_ENDPOINT: peer0.org1.example.com:7051
       PEER_TLS_CERT: /wallet/peer0-org1-tls-ca.crt
       CHANNEL_NAME: medtrace
-      CHAINCODE_NAME: identity-spike
+      CHAINCODE_NAME: provenance
     entrypoint: ["npm", "run", "spike:submit"]
     networks:
       saam-medtrace: {}
