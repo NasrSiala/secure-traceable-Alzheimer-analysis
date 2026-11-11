@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | PRD | TRD | Schema | System Design |
 |---|---|---|---|---|---|---|---|---|---|
-| Équipe projet (L) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.1 | 2026-10-23 | 2.0.1 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) |
+| Équipe projet (L) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.2 | 2026-11-09 | 2.1.3 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) |
 
 Ce document est né de la suite v2.0.0 : il reprend le contenu architectural de l'ancien TRD v1.1.0 (§6 et §20). Les identifiants ADR-01 à ADR-14 sont conservés à l'identique.
 
@@ -282,9 +282,9 @@ Rapport (AC-17.1) : `hw/reports/<date>-<cible>-<cas|ci>.md` + `.json` (vecteur, 
 | IF-04 | SVC-traceability | SVC-pipeline, SVC-api, SVC-verification, SVC-hw-host | API Python (`record`, `read`, `read_manifest`) | `saam/traceability/__init__.py` | Interne | `IntegrityError` (empreinte ou GCM), `AnchoringError` (après 3 réessais) | sync |
 | IF-05 | SVC-hashing | SVC-traceability, SVC-verification, SVC-registry, SVC-hw-host, bancs `hw/sim` | API Python (`canonical_manifest`, `artifact_hash`, `file_hash`) | Règle TRD §7.2 | Changement = nouvelle décision (ADR-04) | `ValueError` sur entrée non canonisable | sync |
 | IF-06 | SVC-dsp | SVC-pipeline, `ml/`, SVC-hw-host, bancs `hw/sim` | API Python (`fir_fixed.filter_decimate`, `prepare`) | Contrat arithmétique §5.6 ; `fir_coeffs.json` | `fir_coef_id` | `ValueError` (forme, dtype) | sync |
-| IF-07 | SVC-ledger-client | SVC-traceability, SVC-verification, SVC-registry, SVC-api, SVC-hw-host | API Python (`create_record`, `get_record`, `get_case_history`, `register_model`, `get_model`) | `saam/ledger/__init__.py` | Interne | `LedgerUnavailable`, `DuplicateRecord`, `RecordNotFound` | sync |
+| IF-07 | SVC-ledger-client | SVC-traceability, SVC-verification, SVC-registry, SVC-api, SVC-hw-host | API Python (`create_record`, `get_record`, `get_case_history`, `register_model`, `get_model`) | `saam/ledger/__init__.py` | Interne | `LedgerUnavailable` (502), `DuplicateRecord` (409), `RecordNotFound` (404), `InvalidRecord` (400, 422), `LedgerForbidden` (401, 403) | sync |
 | IF-08 | SVC-verification | SVC-api, SVC-pipeline | API Python (`verify_case(case_id, persist)`) | `saam/verification/__init__.py` | Interne | Jamais d'exception pour un artefact : statut par artefact | sync |
-| IF-09 | SVC-ledger-gateway | SVC-ledger-client | REST JSON interne + `X-Agent-Token` | TRD §8.2 | Préfixe `/ledger` | 401 jeton, 409 doublon, 404 absent, 502 Fabric | sync |
+| IF-09 | SVC-ledger-gateway | SVC-ledger-client | REST JSON interne + `X-Agent-Token` | TRD §8.2 | Préfixe `/ledger` | Corps d'erreur TRD §8, `code` = code du chaincode. 401 jeton inconnu ou absent ; 403 `FORBIDDEN` ; 404 absent ; 409 `DUPLICATE` ; 400 `SCHEMA` ; 422 `PARENT_MISSING` ; 502 Fabric injoignable | sync |
 | IF-10 | SVC-chaincode | SVC-ledger-gateway | Fabric Gateway (gRPC), submit/evaluate | TRD §8.3 ; Schema §5.2 | Version + séquence du chaincode | Erreur de transaction avec code (`DUPLICATE`, `PARENT_MISSING`, `SCHEMA`, `FORBIDDEN`) | sync |
 | IF-11 | SVC-identity | SVC-api | API Python (`authenticate`, `refresh`, `revoke`, `require_role`) | `saam/identity/__init__.py` ; TRD §9 | Interne | 401, 403, 423, 429 | sync |
 | IF-12 | SVC-registry | SVC-pipeline, SVC-api, `scripts/registry.py`, `scripts/register_model.py` | API Python (`active_model`, `active_validation_config`, `register_model`, `activate`) | `saam/registry/__init__.py` | Interne | `ModelNotAnchored`, `NoActiveVersion` | sync |
