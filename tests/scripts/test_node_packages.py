@@ -103,17 +103,76 @@ def test_grpc_js_is_past_the_known_advisories(repo_root: Path, package: str) -> 
         )
 
 
-def test_deepmerge_stays_outside_the_unpatched_advisory(repo_root: Path) -> None:
-    """AUD-063 (workaround): GHSA-gcqx-w48m-w2h4 covers deepmerge >= 4.2.0, <= 4.3.1 and no
-    release is patched. Only jest-config uses it (merging `globals` of a preset, which this
-    package's jest.config.js does not have), so the override pins 4.1.2, the last release
+@pytest.mark.parametrize("package", PACKAGES)
+def test_deepmerge_stays_outside_the_unpatched_advisory(
+    repo_root: Path, package: str
+) -> None:
+    """AUD-063, AUD-075 (workaround): GHSA-gcqx-w48m-w2h4 covers deepmerge >= 4.2.0, <= 4.3.1
+    and no release is patched. Only jest-config uses it (merging `globals` of a preset, which
+    these packages' jest.config.js do not have), so the override pins 4.1.2, the last release
     before the range, and `npm audit` stays at 0. Remove the override, and this test, when
     deepmerge publishes a fix or Jest stops using it."""
-    package = repo_root / "chaincode" / "provenance"
-    manifest = _json(package / "package.json")
+    package_dir = repo_root / package
+    manifest = _json(package_dir / "package.json")
     assert manifest["overrides"] == {"deepmerge": "4.1.2"}
-    lock = _json(package / "package-lock.json")
+    lock = _json(package_dir / "package-lock.json")
     assert _copies(lock, "deepmerge") == ["4.1.2"]
+
+
+@pytest.mark.parametrize("package", PACKAGES)
+def test_npm_test_removes_stale_compiled_tests_first(
+    repo_root: Path, package: str
+) -> None:
+    """AUD-061, AUD-076: Jest runs dist-test/**/*.test.js. A file compiled from a test that was
+    renamed or deleted would keep running, so `npm test` empties dist-test before compiling."""
+    manifest = _json(repo_root / package / "package.json")
+    scripts = manifest["scripts"]
+    assert isinstance(scripts, dict)
+    test = str(scripts["test"])
+    assert "rmSync('dist-test'" in test
+    assert test.index("rmSync('dist-test'") < test.index("-p tsconfig.test.json")
+    assert (repo_root / package / "tsconfig.test.json").is_file()
+    ignored = (repo_root / ".gitignore").read_text(encoding="utf-8")
+    assert f"{package}/dist-test/" in ignored
+
+
+def test_the_gateway_declares_the_node_it_needs(repo_root: Path) -> None:
+    """AUD-080: fastify -> light-my-request -> cookie@2 is an ES module, loaded from this
+    CommonJS package through require(esm), which Node has without a flag from 20.19. Older
+    runtimes fail at `require("fastify")` with ERR_REQUIRE_ESM, far from the cause."""
+    manifest = _json(repo_root / "ledger-gateway" / "package.json")
+    assert manifest["engines"] == {"node": ">=20.19.0"}
+    lock = _json(repo_root / "ledger-gateway" / "package-lock.json")
+    packages = lock["packages"]
+    assert isinstance(packages, dict)
+    assert packages[""]["engines"] == {"node": ">=20.19.0"}
+
+
+def test_no_setting_is_read_with_a_nullish_default(repo_root: Path) -> None:
+    """AUD-073: `process.env.X ?? default` keeps an empty string, which `env_file:` and
+    `--env-file` produce for every key of .env.example. Settings go through `envSetting`."""
+    offenders = []
+    for source in sorted((repo_root / "ledger-gateway" / "src").glob("*.ts")):
+        for number, line in enumerate(
+            source.read_text(encoding="utf-8").splitlines(), 1
+        ):
+            code = line.split("//")[0]
+            if re.search(r"process\.env(\.\w+|\[[^\]]+\])\s*\?\?", code):
+                offenders.append(f"{source.name}:{number}")
+    assert offenders == []
+
+
+def test_env_example_leaves_only_the_required_key_empty(repo_root: Path) -> None:
+    """AUD-073: an optional key that ships as `NAME=` is set to "" by anyone who copies the file."""
+    lines = (
+        (repo_root / "ledger-gateway" / ".env.example")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    )
+    empty = [
+        line.split("=")[0] for line in lines if re.fullmatch(r"[A-Z_]+=", line.strip())
+    ]
+    assert empty == ["AGENT_TOKEN_FILE"]
 
 
 def test_build_uses_the_lockfile_and_skips_install_scripts(repo_root: Path) -> None:
@@ -153,17 +212,29 @@ def test_deploy_script_checks_the_ledger_not_the_error_text(repo_root: Path) -> 
 
 
 def test_spike_submit_defaults_work_from_a_host_with_node(repo_root: Path) -> None:
-    """AUD-032: `npm run spike:submit` outside Docker needs a certificate and a name the cert has."""
-    source = (repo_root / "ledger-gateway" / "src" / "spike-submit.ts").read_text(
+    """AUD-032: the process that dials the peer uses a certificate name and the wallet TLS CA."""
+    source = (repo_root / "ledger-gateway" / "src" / "fabric-client.ts").read_text(
         encoding="utf-8"
     )
     code = "\n".join(
         line for line in source.splitlines() if not line.lstrip().startswith("//")
     )
-    assert '?? "localhost:18051"' in code
+    assert 'envSetting("PEER_ENDPOINT", "localhost:18051")' in code
     assert "127.0.0.1" not in code  # not one of the names in the peer's TLS certificate
     assert 'process.env.PEER_TLS_CERT ?? ""' not in code
     assert (
         "peer0-org1-tls-ca.crt" in code
     )  # from the wallet: organizations/ is root-only on Linux
     assert "organizations" not in code
+    spike = (repo_root / "ledger-gateway" / "src" / "spike-submit.ts").read_text(
+        encoding="utf-8"
+    )
+    assert "X-Agent-Token" in spike
+    assert "/ledger/artifacts" in spike
+
+
+def test_gateway_check_reaches_the_spike_service(repo_root: Path) -> None:
+    script = (repo_root / "fabric" / "gateway-check.sh").read_text(encoding="utf-8")
+    assert "GATEWAY_SCENARIO" in script
+    assert "check:gateway" in script
+    assert "organizations" not in script
