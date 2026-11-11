@@ -5,6 +5,8 @@ import * as path from "node:path";
 import * as grpc from "@grpc/grpc-js";
 import { connect, hash, signers } from "@hyperledger/fabric-gateway";
 
+import { probeArtifact } from "./probe-artifact";
+
 const identityName = process.env.SPIKE_IDENTITY ?? "agent-ingestion";
 const operation = process.env.SPIKE_OP ?? "write";
 const key = process.env.SPIKE_KEY ?? "attribute-probe";
@@ -18,7 +20,7 @@ const walletDir = process.env.WALLET_DIR ?? path.resolve(__dirname, "../../fabri
 const peerEndpoint = process.env.PEER_ENDPOINT ?? "localhost:18051";
 const peerTlsCert = process.env.PEER_TLS_CERT ?? path.join(walletDir, "peer0-org1-tls-ca.crt");
 const channelName = process.env.CHANNEL_NAME ?? "medtrace";
-const chaincodeName = process.env.CHAINCODE_NAME ?? "identity-spike";
+const chaincodeName = process.env.CHAINCODE_NAME ?? "provenance";
 
 function requireSlug(value: string, label: string): void {
   if (!/^[a-z0-9-]+$/.test(value)) {
@@ -51,11 +53,12 @@ async function main(): Promise<void> {
   });
 
   try {
-    const contract = gateway.getNetwork(channelName).getContract(chaincodeName, "IdentitySpike");
+    const contract = gateway.getNetwork(channelName).getContract(chaincodeName, "Provenance");
+    const probe = probeArtifact(key);
     const result =
       operation === "write"
-        ? await contract.submitTransaction("Write", key)
-        : await contract.evaluateTransaction("Read", key);
+        ? await contract.submitTransaction("CreateArtifactRecord", probe.payload)
+        : await contract.evaluateTransaction("GetArtifactRecord", probe.artifactId);
     process.stdout.write(Buffer.from(result).toString("utf8"));
     process.stdout.write("\n");
   } finally {

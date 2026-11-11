@@ -103,6 +103,19 @@ def test_grpc_js_is_past_the_known_advisories(repo_root: Path, package: str) -> 
         )
 
 
+def test_deepmerge_stays_outside_the_unpatched_advisory(repo_root: Path) -> None:
+    """AUD-063 (workaround): GHSA-gcqx-w48m-w2h4 covers deepmerge >= 4.2.0, <= 4.3.1 and no
+    release is patched. Only jest-config uses it (merging `globals` of a preset, which this
+    package's jest.config.js does not have), so the override pins 4.1.2, the last release
+    before the range, and `npm audit` stays at 0. Remove the override, and this test, when
+    deepmerge publishes a fix or Jest stops using it."""
+    package = repo_root / "chaincode" / "provenance"
+    manifest = _json(package / "package.json")
+    assert manifest["overrides"] == {"deepmerge": "4.1.2"}
+    lock = _json(package / "package-lock.json")
+    assert _copies(lock, "deepmerge") == ["4.1.2"]
+
+
 def test_build_uses_the_lockfile_and_skips_install_scripts(repo_root: Path) -> None:
     """AUD-034."""
     script = (repo_root / "fabric" / "enroll-identities.sh").read_text(encoding="utf-8")
@@ -128,11 +141,14 @@ def test_chaincode_packages_are_reproducible_archives(repo_root: Path) -> None:
 
 def test_deploy_script_checks_the_ledger_not_the_error_text(repo_root: Path) -> None:
     """AUD-031: a failed commit is never excused by what its message happens to contain."""
-    script = (repo_root / "fabric/scripts" / "deploy-identity-spike.sh").read_text(
+    script = (repo_root / "fabric" / "scripts" / "deploy-chaincode.sh").read_text(
         encoding="utf-8"
     )
+    host = (repo_root / "fabric" / "deploy-chaincode.sh").read_text(encoding="utf-8")
+    assert "/work/scripts/deploy-chaincode.sh" in host
     assert "querycommitted" in script
     assert 'grep -q "identity-spike"' not in script
+    assert 'grep -q "provenance"' not in script
     assert "calculatepackageid" in script
 
 

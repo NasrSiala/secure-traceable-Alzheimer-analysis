@@ -6,17 +6,19 @@ import type { CallOptions } from "@grpc/grpc-js";
 import * as grpc from "@grpc/grpc-js";
 import { connect, hash, signers, StatusCode } from "@hyperledger/fabric-gateway";
 
+import { probeArtifact } from "./probe-artifact";
+
 const TRANSACTION_COUNT = 7;
 const BUDGET_SECONDS = 7.3;
 const IDENTITY = "agent-ingestion";
-const CONTRACT = "IdentitySpike";
+const CONTRACT = "Provenance";
 
 const walletDir = process.env.WALLET_DIR ?? path.resolve(__dirname, "../../fabric/wallet");
 const fabricDir = path.resolve(__dirname, "../../fabric");
 const peerEndpoint = process.env.PEER_ENDPOINT ?? "localhost:18051";
 const peerTlsCert = process.env.PEER_TLS_CERT ?? path.join(walletDir, "peer0-org1-tls-ca.crt");
 const channelName = process.env.CHANNEL_NAME ?? "medtrace";
-const chaincodeName = process.env.CHAINCODE_NAME ?? "identity-spike";
+const chaincodeName = process.env.CHAINCODE_NAME ?? "provenance";
 
 interface LatencyReport {
   transactionCount: number;
@@ -115,7 +117,7 @@ async function main(): Promise<number> {
   );
   const endorsementPolicy = await setting(
     "ENDORSEMENT_POLICY",
-    "scripts/deploy-identity-spike.sh",
+    "scripts/deploy-chaincode.sh",
     /^POLICY="(.*)"[ \t]*\r?$/m,
   );
   if (batchTimeout === "") {
@@ -142,13 +144,18 @@ async function main(): Promise<number> {
   const validationCodes: string[] = [];
   const blockNumbers: string[] = [];
 
+  // CreateArtifactRecord refuses an artifactId that exists (AC-07.3), so the identifiers of a
+  // run are new each time: the probe can run again on the same network.
+  const runId = crypto.randomBytes(6).toString("hex");
+
   try {
     const contract = gateway.getNetwork(channelName).getContract(chaincodeName, CONTRACT);
     for (let index = 1; index <= TRANSACTION_COUNT; index += 1) {
+      const payload = probeArtifact(`latency-${runId}-${index}`).payload;
       const call: CallOptions = { deadline: new Date(Date.now() + 60_000) };
       const started = process.hrtime.bigint();
-      const proposal = contract.newProposal("Write", {
-        arguments: [`latency-${index}`],
+      const proposal = contract.newProposal("CreateArtifactRecord", {
+        arguments: [payload],
         endorsingOrganizations: ["Org1MSP", "Org2MSP"],
       });
       const endorsed = await proposal.endorse(call);
@@ -205,7 +212,9 @@ async function main(): Promise<number> {
   process.stdout.write(`${JSON.stringify(report)}\n`);
   if (!withinBudget) {
     process.stderr.write(
-      `budget exceeded: p95=${p95}s maximum=${maximum}s budget=${BUDGET_SECONDS}s decision=set-to-0.5s\n`,
+      `budget exceeded: p50=${p50}s p95=${p95}s maximum=${maximum}s budget=${BUDGET_SECONDS}s decision=set-to-0.5s\n` +
+        `Run again before changing BatchTimeout (${batchTimeout}): lowering it only helps when p50 is close to it; ` +
+        "one slow sample among normal ones is a stalled host.\n",
     );
     return 2;
   }

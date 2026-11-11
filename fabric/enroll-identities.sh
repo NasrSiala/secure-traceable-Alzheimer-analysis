@@ -137,7 +137,7 @@ for org, address in packages.items():
         separators=(",", ":"),
     ).encode()
     metadata = json.dumps(
-        {"type": "ccaas", "label": "identity-spike"},
+        {"type": "ccaas", "label": "provenance"},
         separators=(",", ":"),
     ).encode()
     code = tgz([("connection.json", connection)])
@@ -174,17 +174,17 @@ wait_for_chaincode() {
 
 deploy_chaincode() {
   write_chaincode_packages
-  echo "Installing identity-spike on both peers"
+  echo "Installing provenance on both peers"
   local output
-  if ! output=$(compose_tools run -T --rm --no-deps tools /work/scripts/deploy-identity-spike.sh); then
+  if ! output=$(bash ./deploy-chaincode.sh); then
     die "Chaincode deployment failed."
   fi
   # grep finds nothing when the script printed no identifiers; do not let pipefail
   # end the script silently before the explicit check below reports it.
   printf '%s\n' "${output}" | tr -d '\r' | grep '^PACKAGE_ORG' > .runtime/cc.env || true
   chmod 600 .runtime/cc.env || true
-  if ! grep -q '^PACKAGE_ORG1=identity-spike:' .runtime/cc.env \
-    || ! grep -q '^PACKAGE_ORG2=identity-spike:' .runtime/cc.env; then
+  if ! grep -q '^PACKAGE_ORG1=provenance:' .runtime/cc.env \
+    || ! grep -q '^PACKAGE_ORG2=provenance:' .runtime/cc.env; then
     die "Chaincode deployment did not return both package identifiers."
   fi
   # Compose reads CHAINCODE_ID_ORG1, while the peer CLI reports PACKAGE_ORG1.
@@ -208,10 +208,10 @@ cmd_enroll() {
   write_identity_secrets
   echo "Enrolling nine identities"
   compose_tools run -T --rm --no-deps ca-client /work/scripts/enroll-identities.sh
-  build_node_package cc-build "identity-spike chaincode"
+  build_node_package cc-build "provenance chaincode"
   build_node_package gw-build "ledger gateway"
   deploy_chaincode
-  echo "Identities enrolled and identity-spike is ready"
+  echo "Identities enrolled and provenance is ready"
 }
 
 cmd_enroll

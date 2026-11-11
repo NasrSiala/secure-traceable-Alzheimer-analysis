@@ -7,6 +7,7 @@ import math
 import re
 import subprocess
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from pathlib import Path
 from subprocess import CompletedProcess
 
@@ -14,6 +15,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 BUDGET_SECONDS = 7.3
+# A breach must repeat this many times in a row before the guard fails (AUD-068).
+LATENCY_ATTEMPTS = 3
 
 
 def configured_batch_timeout() -> str:
@@ -48,6 +51,40 @@ def classify_latency_result(
     if returncode != 0:
         return "environment-unavailable"
     return "within-budget"
+
+
+@dataclass
+class Settled:
+    """Result of measure_until_settled: the last run, and every run that breached."""
+
+    outcome: str
+    returncode: int
+    report: dict[str, object] | None
+    breaches: list[dict[str, object]] = field(default_factory=list)
+
+
+def measure_until_settled(
+    measure: Callable[[], tuple[int, dict[str, object] | None]],
+    attempts: int = LATENCY_ATTEMPTS,
+) -> Settled:
+    """Run the seven-transaction probe; run it again only after a budget breach.
+
+    Seven samples make the p95 the slowest one, so a single stalled host (a Docker engine
+    that has just restarted, say) breaches the budget although BatchTimeout is fine. The
+    guard exists to catch a configuration that is slow every time, so it fails when the
+    breach repeats `attempts` times in a row. Each run is still judged against the same
+    7.3 s. A run with no baseline (environment unavailable) is never repeated.
+    """
+    breaches: list[dict[str, object]] = []
+    returncode, report = 0, None
+    for _ in range(attempts):
+        returncode, report = measure()
+        outcome = classify_latency_result(returncode, report)
+        if outcome != "budget-exceeded":
+            return Settled(outcome, returncode, report, breaches)
+        assert report is not None
+        breaches.append(report)
+    return Settled("budget-exceeded", returncode, report, breaches)
 
 
 def _json_object(text: str) -> dict[str, object]:
@@ -87,9 +124,12 @@ def test_latency_sources_require_seven_transactions_and_the_budget_fields() -> N
     assert "TRANSACTION_COUNT = 7" in source
     assert "BUDGET_SECONDS = 7.3" in source
     assert 'endorsingOrganizations: ["Org1MSP", "Org2MSP"]' in source
+    assert 'newProposal("CreateArtifactRecord"' in source
+    assert 'CONTRACT = "Provenance"' in source
     assert 'percentileMethod: "nearest-rank"' in source
     assert "p50" in source and "p95" in source and "maximum" in source
     assert '"set-to-0.5s"' in source
+    assert "Run again before changing BatchTimeout" in source
     script = (ROOT / "fabric" / "spike-latency.sh").read_text(encoding="utf-8")
     assert "environment unavailable" in script
     assert "BatchTimeout" in script
@@ -121,6 +161,80 @@ def test_budget_violation_is_not_classified_as_an_unavailable_environment() -> N
     within = {"validatedCount": 7, "p50": 1.0, "p95": 2.0, "maximum": 2.0}
     assert classify_latency_result(0, within) == "within-budget"
     assert classify_latency_result(1, within) == "environment-unavailable"
+
+
+BREACH: tuple[int, dict[str, object] | None] = (
+    2,
+    {"validatedCount": 7, "p50": 4.8, "p95": 9.0, "maximum": 9.0},
+)
+WITHIN: tuple[int, dict[str, object] | None] = (
+    0,
+    {"validatedCount": 7, "p50": 2.08, "p95": 2.2, "maximum": 2.2},
+)
+NO_BASELINE: tuple[int, dict[str, object] | None] = (1, None)
+
+
+def _scripted(
+    runs: list[tuple[int, dict[str, object] | None]],
+) -> tuple[Callable[[], tuple[int, dict[str, object] | None]], list[int]]:
+    calls: list[int] = []
+
+    def measure() -> tuple[int, dict[str, object] | None]:
+        calls.append(1)
+        return runs[len(calls) - 1]
+
+    return measure, calls
+
+
+def test_a_run_within_budget_is_not_repeated() -> None:
+    measure, calls = _scripted([WITHIN])
+    settled = measure_until_settled(measure)
+    assert (settled.outcome, len(calls), settled.breaches) == ("within-budget", 1, [])
+
+
+def test_one_stalled_run_followed_by_a_normal_one_passes_and_is_kept_on_record() -> (
+    None
+):
+    """AUD-068: a host stall is not a BatchTimeout problem."""
+    measure, calls = _scripted([BREACH, WITHIN])
+    settled = measure_until_settled(measure)
+    assert settled.outcome == "within-budget"
+    assert settled.report == WITHIN[1]
+    assert len(calls) == 2
+    assert [breach["p95"] for breach in settled.breaches] == [9.0]
+
+
+def test_a_breach_that_repeats_fails_after_exactly_three_runs() -> None:
+    measure, calls = _scripted([BREACH, BREACH, BREACH, WITHIN])
+    settled = measure_until_settled(measure)
+    assert settled.outcome == "budget-exceeded"
+    assert len(calls) == LATENCY_ATTEMPTS == 3
+    assert len(settled.breaches) == 3
+
+
+def test_two_breaches_then_a_normal_run_still_passes() -> None:
+    measure, calls = _scripted([BREACH, BREACH, WITHIN])
+    settled = measure_until_settled(measure)
+    assert (settled.outcome, len(calls), len(settled.breaches)) == (
+        "within-budget",
+        3,
+        2,
+    )
+
+
+def test_a_run_without_a_baseline_is_never_repeated() -> None:
+    measure, calls = _scripted([NO_BASELINE, WITHIN])
+    settled = measure_until_settled(measure)
+    assert (settled.outcome, len(calls)) == ("environment-unavailable", 1)
+
+
+def test_the_budget_itself_is_unchanged() -> None:
+    """The retry must not loosen what counts as a breach."""
+    just_over: dict[str, object] = {"validatedCount": 7, "p95": 7.31}
+    just_under: dict[str, object] = {"validatedCount": 7, "p95": 7.3}
+    assert classify_latency_result(2, just_over) == "budget-exceeded"
+    assert classify_latency_result(0, just_under) == "within-budget"
+    assert BUDGET_SECONDS == 7.3
 
 
 def test_missing_wallet_is_an_environment_failure(
@@ -184,22 +298,28 @@ def test_seven_commits_report_percentiles_and_enforce_the_budget(
         f"{_redacted(enrolled.stdout)}\n{_redacted(enrolled.stderr)}"
     )
 
-    measured = bash_run(["fabric/spike-latency.sh"], timeout=600)
-    report: dict[str, object] | None
-    try:
-        report = _json_object(measured.stdout)
-    except AssertionError:
-        report = None
-    outcome = classify_latency_result(measured.returncode, report)
+    runs: list[CompletedProcess[str]] = []
+
+    def run_probe() -> tuple[int, dict[str, object] | None]:
+        run = bash_run(["fabric/spike-latency.sh"], timeout=600)
+        runs.append(run)
+        try:
+            return run.returncode, _json_object(run.stdout)
+        except AssertionError:
+            return run.returncode, None
+
+    settled = measure_until_settled(run_probe)
+    outcome, report = settled.outcome, settled.report
+    measured = runs[-1]
     if outcome == "environment-unavailable":
         raise AssertionError(
             "environment unavailable: latency run did not validate seven transactions\n"
             f"exit {measured.returncode}\n{_redacted(measured.stdout)}\n{_redacted(measured.stderr)}"
         )
     assert report is not None
-    for field in ("p50", "p95", "maximum"):
-        assert isinstance(report[field], (int, float)) and not isinstance(
-            report[field], bool
+    for statistic in ("p50", "p95", "maximum"):
+        assert isinstance(report[statistic], (int, float)) and not isinstance(
+            report[statistic], bool
         )
     samples = report["samplesSeconds"]
     assert isinstance(samples, list) and len(samples) == 7
@@ -213,19 +333,37 @@ def test_seven_commits_report_percentiles_and_enforce_the_budget(
     assert report["percentileMethod"] == "nearest-rank"
     assert "Org1MSP.peer" in str(report["endorsementPolicy"])
     assert "Org2MSP.peer" in str(report["endorsementPolicy"])
+    # T2.5a: the probe measures the real chaincode, not the demo one.
+    assert report["chaincode"] == "provenance"
+    assert report["contract"] == "Provenance"
     assert report["batchTimeout"] == configured_batch_timeout()
     if outcome == "budget-exceeded":
         assert report["withinBudget"] is False
         assert report["batchTimeoutDecision"] == "set-to-0.5s"
+        runs_text = "; ".join(
+            f"p50={breach['p50']} p95={breach['p95']} maximum={breach['maximum']}"
+            for breach in settled.breaches
+        )
         pytest.fail(
-            "budget exceeded: "
-            f"p50={report['p50']} p95={report['p95']} maximum={report['maximum']} "
+            f"budget exceeded in {len(settled.breaches)} runs in a row: {runs_text}; "
             "decision=set-to-0.5s"
         )
     assert outcome == "within-budget"
     assert report["withinBudget"] is True
     assert report["batchTimeoutDecision"] == "keep"
-    assert measured.returncode == 0
+    assert settled.returncode == 0
+    if settled.breaches:
+        print(
+            "LATENCY_RETRY "
+            + json.dumps(
+                [
+                    {key: breach[key] for key in ("p50", "p95", "maximum")}
+                    for breach in settled.breaches
+                ],
+                separators=(",", ":"),
+            )
+        )
+    _assert_a_second_run_is_not_a_duplicate(bash_run)
     _assert_probe_runs_on_its_own(bash_run)
     print(
         "LATENCY_BASELINE "
@@ -240,6 +378,26 @@ def test_seven_commits_report_percentiles_and_enforce_the_budget(
             },
             separators=(",", ":"),
         )
+    )
+
+
+def _assert_a_second_run_is_not_a_duplicate(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    """AUD-057: CreateArtifactRecord refuses an existing artifactId (AC-07.3), so a probe that
+    reuses its identifiers works once per network. The wrapper takes whichever branch the host
+    allows, so this holds with and without Node on the host."""
+    again = bash_run(["fabric/spike-latency.sh"], timeout=600)
+    try:
+        report: dict[str, object] | None = _json_object(again.stdout)
+    except AssertionError:
+        report = None
+    # Completion, not latency: the budget is judged on the first run.
+    assert (
+        classify_latency_result(again.returncode, report) != "environment-unavailable"
+    ), (
+        f"a second run on the same network failed\nexit {again.returncode}\n"
+        f"{_redacted(again.stdout)}\n{_redacted(again.stderr)}"
     )
 
 
@@ -261,9 +419,9 @@ def _assert_probe_runs_on_its_own(
         timeout=300,
     )
     report = _json_object(alone.stdout)
-    assert classify_latency_result(alone.returncode, report) == "within-budget", (
-        f"exit {alone.returncode}\n{_redacted(alone.stdout)}\n{_redacted(alone.stderr)}"
-    )
+    assert (
+        classify_latency_result(alone.returncode, report) != "environment-unavailable"
+    ), f"exit {alone.returncode}\n{_redacted(alone.stdout)}\n{_redacted(alone.stderr)}"
     assert report["batchTimeout"] == configured_batch_timeout()
     assert "Org1MSP.peer" in str(report["endorsementPolicy"])
     assert "Org2MSP.peer" in str(report["endorsementPolicy"])

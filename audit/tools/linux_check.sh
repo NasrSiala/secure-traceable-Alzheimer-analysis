@@ -54,7 +54,7 @@ for w in glob.glob('${WIN_WORK_WSL}/wheels/*.whl'):
     ;;
   sync)
     mkdir -p "${WORK}"
-    git ls-files -co --exclude-standard -z | tar --null -T - -cf "${WORK}/tree.tar"
+    git ls-files -co --exclude-standard -z | tar --null --ignore-failed-read -T - -cf "${WORK}/tree.tar"
     wsl_run "set -e; mkdir -p ~/saam; cd ~/saam
       [ -d .git ] || { git init -q; git config user.email a@b.c; git config user.name audit; }
       find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +

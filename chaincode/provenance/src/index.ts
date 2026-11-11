@@ -1,6 +1,6 @@
 import "reflect-metadata";
 
-import { IdentitySpike } from "./identity-spike";
+import { Provenance } from "./provenance";
 
-export { IdentitySpike };
-export const contracts = [IdentitySpike];
+export { Provenance };
+export const contracts = [Provenance];
