@@ -2,7 +2,7 @@
 
 | Owner | Status | Version | Last updated | Suite version | PRD | TRD | Schema | System Design | Designs |
 |---|---|---|---|---|---|---|---|---|---|
-| Équipe projet | In review | 2.0.2 | 2026-11-09 | 2.1.3 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) | [07-design-brief.md](07-design-brief.md) |
+| Équipe projet | In review | 2.0.2 | 2026-11-09 | 2.1.4 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) | [07-design-brief.md](07-design-brief.md) |
 
 ## 1. Périmètre et plateformes
 

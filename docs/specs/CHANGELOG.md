@@ -18,6 +18,12 @@ Règles :
 - Tags git du logiciel : `v0.y.z` pendant le développement, `v1.0.0` à la soutenance.
 - Les versions écrites avant cette règle (1.0, 1.1, 2.0) se lisent 1.0.0, 1.1.0 et 2.0.0 ; elles ont été réécrites ainsi dans la v2.0.1.
 
+## Suite v2.1.4 — 2026-11-09
+**Change:** l'outillage Node/TypeScript est ajouté à la liste des dépendances du TRD §18 (audit de code, passe 2).  **Requested by:** utilisateur (L)  **Decision:** accord de l'utilisateur (L), 2026-11-09 ; à confirmer par B (T1.1, CI)  **From audit:** AUD-038
+
+- TRD v2.0.4 : §18, outillage Node : `typescript`, `@types/node`, `reflect-metadata` (requis par les décorateurs de `fabric-contract-api`), `jest` et `eslint` (déjà cités par §16 et §17 pour les tests et le lint du chaincode, absents de la liste). Correctif : ces paquets découlent de la pile déjà choisie (Node 20, TypeScript, ADR-02) ; aucune bibliothèque d'exécution n'est ajoutée.
+- Plan v2.1.4 : §1, version du TRD recalée. Version de suite dans les en-têtes de tous les documents, AGENTS.md, PROGRESS.md et `schema.sql` : 2.1.4. Autres documents inchangés sur le fond.
+
 ## Suite v2.1.3 — 2026-11-09
 **Change:** table complète des erreurs de la passerelle ledger (IF-09) et du client (IF-07), issue de l'audit de code (AUD-011).  **Requested by:** utilisateur  **Decision:** accord de l'utilisateur (L), 2026-11-09 ; à confirmer par B (T2.7, `LedgerClient`)  **From audit:** AUD-011
 

@@ -285,15 +285,32 @@ assert_fabric_dir() {
   esac
 }
 
+GENERATED=(organizations channel-artifacts .runtime wallet)
+
+# Containers run as root. On Linux (Docker Engine) they leave root-owned files in the
+# bind-mounted generated directories, which the host user cannot delete. A root
+# container started from the same compose file (same bind-mount semantics as every
+# other service) deletes them. Only the four generated directories are named.
+remove_generated_as_root() {
+  compose --profile tools run -T --rm --no-deps cleaner     -c "cd /work/fabric && rm -rf ${GENERATED[*]}" >/dev/null
+}
+
 remove_generated() {
   assert_fabric_dir
-  local target try
-  for target in organizations channel-artifacts .runtime; do
-    if [[ ! -e "${target}" ]]; then
-      continue
+  local target try pending=0
+  for target in "${GENERATED[@]}"; do
+    if [[ -e "${target}" ]] && ! rm -rf "${target}" 2>/dev/null; then
+      pending=1
     fi
+  done
+  if [[ "${pending}" -eq 1 ]]; then
+    echo "Some generated files are owned by root; removing them in a container."
+    remove_generated_as_root || die "Could not remove the generated files in a container."
+  fi
+  for target in "${GENERATED[@]}"; do
+    # A file lock (Windows antivirus, indexer) can release a moment later.
     for ((try = 1; try <= 5; try++)); do
-      if rm -rf "${target}"; then
+      if [[ ! -e "${target}" ]] || rm -rf "${target}" 2>/dev/null; then
         break
       fi
       sleep 1
@@ -391,7 +408,8 @@ prepare_dirs() {
     organizations/fabric-ca/org2 \
     organizations/fabric-ca/ordererOrg \
     channel-artifacts \
-    .runtime
+    .runtime \
+    wallet
 }
 
 cmd_start() {

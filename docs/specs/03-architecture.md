@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | PRD | TRD | Schema | System Design |
 |---|---|---|---|---|---|---|---|---|---|
-| Équipe projet (L) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.2 | 2026-11-09 | 2.1.3 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) |
+| Équipe projet (L) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.2 | 2026-11-09 | 2.1.4 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) |
 
 Ce document est né de la suite v2.0.0 : il reprend le contenu architectural de l'ancien TRD v1.1.0 (§6 et §20). Les identifiants ADR-01 à ADR-14 sont conservés à l'identique.
 

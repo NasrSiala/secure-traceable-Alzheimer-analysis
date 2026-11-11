@@ -1,0 +1,18 @@
+{
+  "name": "ledger-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node node_modules/typescript/bin/tsc",
+    "test": "node node_modules/typescript/bin/tsc --noEmit",
+    "spike:submit": "node dist/spike-submit.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "1.14.7",
+    "@hyperledger/fabric-gateway": "1.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.17.6",
+    "typescript": "5.6.3"
+  }
+}

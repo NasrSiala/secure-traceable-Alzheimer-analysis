@@ -2,7 +2,7 @@
 
 | Owner | Status | Version | Last updated | Suite version |
 |---|---|---|---|---|
-| Nasr Siala (L) | Draft — à relire par un autre membre (A-02.3) | 1.0.0 | 2026-11-09 | 2.1.3 |
+| Nasr Siala (L) | Draft — à relire par un autre membre (A-02.3) | 1.0.0 | 2026-11-09 | 2.1.4 |
 
 Ce document découpe les tâches du rôle **L — Ledger & matériel** du [plan 08](08-implementation-plan.md) en incréments livrables. Il ne change ni les tâches, ni leurs critères de fin (DoD), ni les dates officielles du plan 08 : en cas de conflit, le plan 08 et les décisions de [review.md](review.md) l'emportent (D-18 : plan inchangé, risque de calendrier accepté).
 

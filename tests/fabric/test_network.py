@@ -187,6 +187,45 @@ def test_status_on_a_stopped_network_changes_nothing(
     assert _our_volumes() == set()
 
 
+def test_stop_removes_a_build_container_left_by_an_interrupted_enrollment(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    """AUD-028: a one-off container from `compose run` carries the ownership label,
+    so `stop` removes it instead of failing on "network has active endpoints"."""
+    _assert_ok(bash_run(["fabric/network.sh", "stop"], timeout=180), "stop")
+    started = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "--project-name",
+            "saam-medtrace",
+            "-f",
+            "fabric/compose/compose.yaml",
+            "--profile",
+            "spike",
+            "run",
+            "-d",
+            "-T",
+            "--no-deps",
+            "gw-build",
+            "-lc",
+            "sleep 600",
+        ],
+        cwd=ROOT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        capture_output=True,
+        check=False,
+    )
+    _assert_ok(started, "start of the one-off build container")
+    assert _our_container_ids() != set()
+    stopped = bash_run(["fabric/network.sh", "stop"], timeout=180)
+    _assert_ok(stopped, "stop with a build container left behind")
+    assert _our_container_ids() == set()
+    assert "saam-medtrace" not in _network_names()
+
+
 def test_three_start_stop_cycles_leave_no_residue(
     bash_run: Callable[..., CompletedProcess[str]],
     repo_root: Path,
@@ -235,6 +274,18 @@ def test_three_start_stop_cycles_leave_no_residue(
             check=False,
         )
         assert ignored.returncode == 0
+        ignored_wallet = subprocess.run(
+            [
+                "git",
+                "check-ignore",
+                "-q",
+                "--",
+                "fabric/wallet/agent-ingestion/key.pem",
+            ],
+            cwd=repo_root,
+            check=False,
+        )
+        assert ignored_wallet.returncode == 0
 
         stopped = bash_run(["fabric/network.sh", "stop"], timeout=180)
         _assert_ok(stopped, f"cycle {cycle} stop")
@@ -248,3 +299,4 @@ def test_three_start_stop_cycles_leave_no_residue(
         assert foreign_before <= _foreign_container_ids()
         assert networks_before <= (_network_names() - {"saam-medtrace"})
         assert volumes_before <= _existing_volumes()
+        assert not (repo_root / "fabric" / "wallet").exists()

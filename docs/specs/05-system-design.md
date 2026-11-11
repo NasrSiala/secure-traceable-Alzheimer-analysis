@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | TRD | Architecture | Schema | App Flow |
 |---|---|---|---|---|---|---|---|---|---|
-| Équipe projet (B) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.2 | 2026-11-09 | 2.1.3 | [02-trd.md](02-trd.md) | [03-architecture.md](03-architecture.md) | [04-backend-schema.md](04-backend-schema.md) | [06-app-flow.md](06-app-flow.md) |
+| Équipe projet (B) | Encadrant `[TBD: nom, Q-12]` | In review | 1.0.2 | 2026-11-09 | 2.1.4 | [02-trd.md](02-trd.md) | [03-architecture.md](03-architecture.md) | [04-backend-schema.md](04-backend-schema.md) | [06-app-flow.md](06-app-flow.md) |
 
 ## 1. Objet et périmètre
 

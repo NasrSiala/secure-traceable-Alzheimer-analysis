@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | PRD | Architecture | System Design |
 |---|---|---|---|---|---|---|---|---|
-| Équipe projet | Encadrant `[TBD: nom, Q-12]` | Approved (vision validée par l'encadrant, D-15) | 2.0.3 | 2026-11-09 | 2.1.3 | [01-prd.md](01-prd.md) | [03-architecture.md](03-architecture.md) | [05-system-design.md](05-system-design.md) |
+| Équipe projet | Encadrant `[TBD: nom, Q-12]` | Approved (vision validée par l'encadrant, D-15) | 2.0.4 | 2026-11-09 | 2.1.4 | [01-prd.md](01-prd.md) | [03-architecture.md](03-architecture.md) | [05-system-design.md](05-system-design.md) |
 
 Depuis la suite v2.0.0, ce document garde la technologie et les exigences (stack, plateformes, cibles NFR, conventions d'API publique, sécurité, environnements, coûts). La structure et les ADR sont dans l'Architecture ; la tenue en charge et les pannes dans le System Design.
 
@@ -259,7 +259,7 @@ Logs JSON structurés (structlog / pino) avec `case_id` et `trace_id` sur tous l
 
 ## 18. Dépendances et bibliothèques
 
-Python : fastapi, sqlalchemy, alembic, pydantic, argon2-cffi, pyjwt, slowapi, langgraph, langgraph-checkpoint-postgres, torch (CPU), numpy, scipy, wfdb, neurokit2, captum (non planifié en v1, D-17), cryptography, rfc8785, httpx, structlog ; outillage : import-linter (contrôles d'architecture). Node : fabric-contract-api, fabric-shim, @hyperledger/fabric-gateway, @grpc/grpc-js, fastify, pino. Front : react, react-router, @tanstack/react-query, tailwindcss, plotly.js. Matériel : GHDL (≥ 3.0, VHDL-2008, GPL-2.0, outil uniquement), cocotb (BSD-3), cocotbext-axi (MIT), pyserial (BSD-3), AMD Vivado/Vitis (propriétaire, édition gratuite), fichiers de carte Digilent `[TBD: licence]`. Licences : MIT/BSD/Apache-2.0 (Fabric Apache-2.0). Versions épinglées (`uv.lock`, `package-lock.json`) ; `pip-audit` et `npm audit` en CI.
+Python : fastapi, sqlalchemy, alembic, pydantic, argon2-cffi, pyjwt, slowapi, langgraph, langgraph-checkpoint-postgres, torch (CPU), numpy, scipy, wfdb, neurokit2, captum (non planifié en v1, D-17), cryptography, rfc8785, httpx, structlog ; outillage : import-linter (contrôles d'architecture). Node : fabric-contract-api, fabric-shim, @hyperledger/fabric-gateway, @grpc/grpc-js, fastify, pino ; outillage Node : typescript, @types/node, reflect-metadata (décorateurs de fabric-contract-api), jest, eslint. Front : react, react-router, @tanstack/react-query, tailwindcss, plotly.js. Matériel : GHDL (≥ 3.0, VHDL-2008, GPL-2.0, outil uniquement), cocotb (BSD-3), cocotbext-axi (MIT), pyserial (BSD-3), AMD Vivado/Vitis (propriétaire, édition gratuite), fichiers de carte Digilent `[TBD: licence]`. Licences : MIT/BSD/Apache-2.0 (Fabric Apache-2.0). Versions épinglées (`uv.lock`, `package-lock.json`) ; `pip-audit` et `npm audit` en CI.
 
 ## 19. Estimation des coûts
 
