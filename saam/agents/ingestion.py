@@ -1,4 +1,4 @@
-﻿"""ECG ingestion and pseudonymization agent."""
+"""ECG ingestion and pseudonymization agent."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import wfdb
+
+from saam.agents.redaction import sanitize_report as redact_report
 
 
 LEADS = (
@@ -49,22 +51,12 @@ def validate_case_id(case_id: str) -> None:
         raise ValueError("case_id must have the format CASE-<UUID>.")
 
 
-def sanitize_report(report_text: Optional[str]) -> Optional[str]:
-    if report_text is None:
-        return None
+def sanitize_report(
+    report_text: Optional[str],
+    known_names: tuple[str, ...] = (),
+) -> Optional[str]:
+    return redact_report(report_text, known_names)
 
-    if not isinstance(report_text, str):
-        raise TypeError("report_text must be a string.")
-
-    sanitized = IDENTITY_LABEL_PATTERN.sub(
-        lambda match: f"{match.group(1)}: [ANONYMISÉ]",
-        report_text,
-    )
-
-    for pattern in DATE_PATTERNS:
-        sanitized = pattern.sub("[ANONYMISÉ]", sanitized)
-
-    return sanitized
 
 
 def validate_signal(signal: np.ndarray, leads: tuple[str, ...]) -> None:
@@ -204,6 +196,7 @@ def ingest_ecg(
     case_id: str,
     csv_sampling_rate: Optional[float] = None,
     report_text: Optional[str] = None,
+    known_names: tuple[str, ...] = (),
 ) -> IngestionResult:
     validate_case_id(case_id)
     path = Path(ecg_path)
@@ -231,6 +224,6 @@ def ingest_ecg(
         leads=leads,
         units=units,
         files=files,
-        report_text=sanitize_report(report_text),
+        report_text=sanitize_report(report_text, known_names),
         source_format=source_format,
     )

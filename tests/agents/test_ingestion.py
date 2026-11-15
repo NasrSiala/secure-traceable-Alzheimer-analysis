@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import uuid
 
 import numpy as np
@@ -183,3 +183,50 @@ def test_unsupported_file_format_is_rejected(tmp_path):
 
     with pytest.raises(ValueError, match="Unsupported format"):
         ingest_ecg(unsupported, CASE_ID)
+
+def test_wfdb_header_does_not_leak_personal_metadata(tmp_path):
+    import wfdb
+
+    leads = [
+        "I", "II", "III", "AVR", "AVL", "AVF",
+        "V1", "V2", "V3", "V4", "V5", "V6",
+    ]
+
+    record_name = "private_record"
+
+    wfdb.wrsamp(
+        record_name=record_name,
+        fs=500,
+        units=["mV"] * 12,
+        sig_name=leads,
+        p_signal=np.zeros((5000, 12), dtype=np.float64),
+        fmt=["16"] * 12,
+        write_dir=str(tmp_path),
+    )
+
+    header_path = tmp_path / f"{record_name}.hea"
+
+    with header_path.open("a", encoding="utf-8") as header:
+        header.write("# Patient Name: John Smith\n")
+        header.write("# DOB: 1980-04-12\n")
+        header.write("# Patient ID: PRIVATE-123\n")
+
+    result = ingest_ecg(
+        header_path,
+        "CASE-12345678-1234-1234-1234-123456789012",
+    )
+
+    generated_headers = [
+        content.decode("utf-8")
+        for filename, content in result.files.items()
+        if str(filename).endswith(".hea")
+    ]
+
+    assert len(generated_headers) == 1
+
+    generated_header = generated_headers[0]
+
+    assert "John Smith" not in generated_header
+    assert "1980-04-12" not in generated_header
+    assert "PRIVATE-123" not in generated_header
+    assert "private_record" not in generated_header
