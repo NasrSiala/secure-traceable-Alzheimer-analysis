@@ -1,5 +1,4 @@
-import { generateKeyPairSync } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 
@@ -9,39 +8,13 @@ import {
   assertEnrolled,
   connectLedger,
   ledgerSettingsFromEnvironment,
-  type LedgerSettings,
 } from "../src/fabric-client";
 import { envSetting } from "../src/settings";
+import { enroll, walletSettings } from "./wallet-fixture";
 
 jest.setTimeout(20_000);
 
 const ARTIFACT_ID = "11111111-1111-4111-8111-111111111111";
-
-async function enroll(wallet: string, identity: string): Promise<void> {
-  const home = path.join(wallet, identity);
-  await mkdir(home, { recursive: true });
-  const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
-  // The certificate is only handed to the Gateway client, which sends it to the peer; nothing
-  // here parses it, and the peer below never answers.
-  await writeFile(path.join(home, "cert.pem"), "certificate");
-  await writeFile(path.join(home, "key.pem"), privateKey.export({ type: "pkcs8", format: "pem" }));
-  await writeFile(path.join(home, "msp-id"), "Org1MSP\n");
-}
-
-async function walletSettings(): Promise<LedgerSettings> {
-  const walletDir = await mkdtemp(path.join(tmpdir(), "saam-client-"));
-  await enroll(walletDir, "agent-ingestion");
-  const peerTlsCert = path.join(walletDir, "peer0-org1-tls-ca.crt");
-  await writeFile(peerTlsCert, "authority");
-  return {
-    walletDir,
-    // Nothing listens on port 1: a call fails at once with UNAVAILABLE.
-    peerEndpoint: "127.0.0.1:1",
-    peerTlsCert,
-    channelName: "medtrace",
-    chaincodeName: "provenance",
-  };
-}
 
 describe("sessions", () => {
   let made = 0;

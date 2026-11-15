@@ -11,6 +11,7 @@
     "start": "node dist/server.js",
     "check:gateway": "node dist/gateway-check.js",
     "check:history": "node dist/history-check.js",
+    "check:model": "node dist/model-check.js",
     "spike:submit": "node dist/spike-submit.js",
     "spike:latency": "node dist/spike-latency.js"
   },
