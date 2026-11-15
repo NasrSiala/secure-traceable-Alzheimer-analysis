@@ -10,6 +10,7 @@
     "test": "node node_modules/typescript/bin/tsc --noEmit && node -e \"require('fs').rmSync('dist-test',{recursive:true,force:true})\" && node node_modules/typescript/bin/tsc -p tsconfig.test.json && node node_modules/jest/bin/jest.js --runInBand",
     "start": "node dist/server.js",
     "check:gateway": "node dist/gateway-check.js",
+    "check:history": "node dist/history-check.js",
     "spike:submit": "node dist/spike-submit.js",
     "spike:latency": "node dist/spike-latency.js"
   },

@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
@@ -57,3 +57,12 @@ def run_bash(
         timeout=timeout,
         check=False,
     )
+
+
+@pytest.fixture
+def _stop_after_test(
+    bash_run: Callable[..., subprocess.CompletedProcess[str]],
+) -> Iterator[None]:
+    """Fabric tests: whatever the test did, the test network is stopped afterwards."""
+    yield
+    bash_run(["fabric/network.sh", "stop"], timeout=180)

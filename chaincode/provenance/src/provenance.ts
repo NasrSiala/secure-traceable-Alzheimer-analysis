@@ -5,10 +5,17 @@ import {
   type CallerIdentity,
   certificateSubject,
   parseClientArtifact,
+  requireCaseId,
   requirePipelineAgent,
   requireUuid,
 } from "./artifact";
 import { fail } from "./errors";
+
+const CASE_ARTIFACT = "case~artifact";
+const ARTIFACT_ANCHORED = "ArtifactAnchored";
+
+type Stub = Context["stub"];
+type ClientArtifact = ReturnType<typeof parseClientArtifact>;
 
 function callerOf(ctx: Context): CallerIdentity {
   return {
@@ -19,9 +26,124 @@ function callerOf(ctx: Context): CallerIdentity {
   };
 }
 
+function isStoredArtifact(value: unknown): value is ArtifactRecord {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    record.docType === "artifact" &&
+    typeof record.artifactId === "string" &&
+    typeof record.caseId === "string" &&
+    typeof record.txTimestamp === "string" &&
+    (record.parentArtifactId === null || typeof record.parentArtifactId === "string")
+  );
+}
+
+// What the ledger holds is the chaincode's own output. A record that cannot be read back is a
+// fault of the ledger state, not of the caller: INTEGRITY, never SCHEMA or NOT_FOUND.
+function parseStoredArtifact(raw: Uint8Array): ArtifactRecord {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(raw).toString("utf8")) as unknown;
+  } catch {
+    fail("INTEGRITY", "a stored record is not valid JSON");
+  }
+  if (!isStoredArtifact(parsed)) {
+    fail("INTEGRITY", "a stored record is not an artifact");
+  }
+  return parsed;
+}
+
+async function requireParent(stub: Stub, client: ClientArtifact): Promise<void> {
+  if (client.artifactType === "original") {
+    if (client.parentArtifactId !== null) {
+      fail("SCHEMA", "original must have a null parent");
+    }
+    return;
+  }
+  if (client.parentArtifactId === null) {
+    fail("PARENT_MISSING", "parentArtifactId is required");
+  }
+  const raw = await stub.getState(client.parentArtifactId);
+  if (raw.length === 0) {
+    fail("PARENT_MISSING", "parentArtifactId does not exist in this case");
+  }
+  if (parseStoredArtifact(raw).caseId !== client.caseId) {
+    fail("PARENT_MISSING", "parentArtifactId does not exist in this case");
+  }
+}
+
+async function recordsForCase(stub: Stub, caseId: string): Promise<ArtifactRecord[]> {
+  const iterator = await stub.getStateByPartialCompositeKey(CASE_ARTIFACT, [caseId]);
+  const ids: string[] = [];
+  try {
+    for (;;) {
+      const result = await iterator.next();
+      if (result.done || result.value === undefined) {
+        break;
+      }
+      if (result.value.value.length !== 0) {
+        ids.push(Buffer.from(result.value.value).toString("utf8"));
+      }
+    }
+  } finally {
+    await iterator.close();
+  }
+
+  return Promise.all(
+    ids.map(async (artifactId) => {
+      const stored = await stub.getState(artifactId);
+      if (stored.length === 0) {
+        fail("INTEGRITY", "an indexed artifact is not on the ledger");
+      }
+      const record = parseStoredArtifact(stored);
+      if (record.caseId !== caseId) {
+        fail("INTEGRITY", "an indexed artifact belongs to another case");
+      }
+      return record;
+    }),
+  );
+}
+
+function compareChronologically(left: ArtifactRecord, right: ArtifactRecord): number {
+  if (left.txTimestamp !== right.txTimestamp) {
+    return left.txTimestamp < right.txTimestamp ? -1 : 1;
+  }
+  if (left.artifactId !== right.artifactId) {
+    return left.artifactId < right.artifactId ? -1 : 1;
+  }
+  return 0;
+}
+
+// A child always comes after its parent. Among the artifacts that may come next, the one the
+// ledger recorded first comes first (the artifact id only breaks a tie). Clocks of the agents
+// can disagree, so the timestamp alone could put a child before its parent.
+function orderParentToChild(records: ArtifactRecord[]): ArtifactRecord[] {
+  const pending = [...records].sort(compareChronologically);
+  const placed = new Set<string>();
+  const ordered: ArtifactRecord[] = [];
+  while (pending.length > 0) {
+    const next = pending.findIndex(
+      (record) => record.parentArtifactId === null || placed.has(record.parentArtifactId),
+    );
+    if (next === -1) {
+      // CreateArtifactRecord only accepts a parent that already exists in the same case.
+      fail("INTEGRITY", "a case holds an artifact whose parent is missing or that is in a cycle");
+    }
+    const [record] = pending.splice(next, 1);
+    if (record === undefined) {
+      continue;
+    }
+    placed.add(record.artifactId);
+    ordered.push(record);
+  }
+  return ordered;
+}
+
 @Info({
   title: "Provenance",
-  description: "Creates and reads closed-schema ARTIFACT records",
+  description: "Creates, reads, and lists closed-schema ARTIFACT records",
 })
 export class Provenance extends Contract {
   @Transaction()
@@ -30,20 +152,27 @@ export class Provenance extends Contract {
     const caller = callerOf(ctx);
     const creatorAgent = requirePipelineAgent(caller);
     const client = parseClientArtifact(json);
-    const existing = await ctx.stub.getState(client.artifactId);
+    const stub = ctx.stub;
+    const existing = await stub.getState(client.artifactId);
     if (existing.length !== 0) {
       fail("DUPLICATE", "artifactId already exists");
     }
+    await requireParent(stub, client);
     const record: ArtifactRecord = {
       docType: "artifact",
       ...client,
-      txTimestamp: ctx.stub.getDateTimestamp().toISOString(),
+      txTimestamp: stub.getDateTimestamp().toISOString(),
       creatorMspId: caller.mspId,
       creatorId: caller.subject,
       creatorAgent,
     };
     const payload = JSON.stringify(record);
-    await ctx.stub.putState(client.artifactId, Buffer.from(payload));
+    await stub.putState(client.artifactId, Buffer.from(payload));
+    await stub.putState(
+      stub.createCompositeKey(CASE_ARTIFACT, [client.caseId, client.artifactId]),
+      Buffer.from(client.artifactId),
+    );
+    stub.setEvent(ARTIFACT_ANCHORED, Buffer.from(payload));
     return payload;
   }
 
@@ -55,5 +184,12 @@ export class Provenance extends Contract {
       fail("NOT_FOUND", "artifactId is not on the ledger");
     }
     return Buffer.from(stored).toString("utf8");
+  }
+
+  @Transaction(false)
+  public async GetCaseHistory(ctx: Context, caseId: string): Promise<string> {
+    requireCaseId(caseId);
+    const records = await recordsForCase(ctx.stub, caseId);
+    return JSON.stringify(orderParentToChild(records));
   }
 }
