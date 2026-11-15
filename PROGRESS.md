@@ -12,6 +12,15 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 - **Bloquants :** noms de I, B, F ; voir `docs/specs/review.md`.
 - **Point hebdomadaire :** vendredi 13/11, 20/11, 27/11 — ce fichier à jour, y compris « rien fait » (A-02.5).
 
+## Avancement - Role I (2026-11-15)
+
+| Tache | Avancement | Verification / reserve |
+|---|---|---|
+| T2.10 - FIR fixe | Generation de 111 coefficients Q1.15, filtre multi-lead bit-exact et 13 tests | Regeneration deterministe verifiee. Attenuation quantifiee : 52.4227 dB, sous la cible NFR-21 de 60 dB. SNR global mesure : 55.825 dB sur cinq ECG. Identifiant provisoire `b6d7a73a`, en attente de `saam.hashing`. |
+| T2.11 - Vecteurs PTB-XL | Cinq enregistrements `records500` du fold 10 prepares dans `hw/vectors/ptbxl/records500/00000/` | Fichiers `.dat` et `.hea`, checksums et chargement WFDB verifies. Attribution CC BY 4.0 presente. Verification officielle `ml/data.py --check-hw-vectors` non executee : script absent localement. |
+| T2.12 - Preparation ECG | `saam/dsp/prepare.py` implemente et teste | ECG PTB-XL reel ECG 1 valide. Sorties : `[12,5000]`, `[12,1011]`, `[12,1000]`. Politique stricte : rejet des echantillons invalides, sans interpolation. 14 tests dedies. |
+| Suite de tests | Verification globale effectuee | 112 passed, 1 skipped, 9 deselected. `git diff --check` reussi. |
+
 ## Fait
 
 | Tâche | Date | Preuve (commande / lien) |
@@ -49,7 +58,35 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 | 2026-11-10 | Audit de code, passe 4 (`audit/round-4/AUDIT_REPORT.md`) : 12 constats sur l04, aucun critique ni majeur, aucun défaut dans la logique du chaincode. Corrigés : la sonde de latence ne marchait qu'une fois par réseau (identifiants fixes, `CreateArtifactRecord` refuse les doublons) ; l'autorisation passait après la validation ; branches de sécurité sans test Jest ; tests compilés périmés jamais nettoyés (`dist-test`) ; `fabric/deploy-chaincode.sh` sans vérification des paquets et jamais appelé par l'enrôlement. Garde-fou de latence (AUD-068) : avec 7 échantillons le p95 est le plus lent, donc un hôte qui cale suffit à dépasser 7,3 s ; le test relance la sonde après un dépassement et n'échoue que si le dépassement se répète trois fois de suite (même budget à chaque exécution, ligne `LATENCY_RETRY` si un passage suit un dépassement) ; avant de passer `BatchTimeout` à 0,5 s, ne changer que si la médiane est aussi proche du délai. Avis `deepmerge` de Jest (AUD-063) : contournement par `overrides` sur 4.1.2 (aucune version corrigée n'existe), `npm audit` à 0, à retirer quand un correctif existe. | T2.5a | corrigé le 2026-11-10 ; reste : `@types/jest` à ajouter au TRD §18 et `NOT_FOUND` à IF-10 (AUD-064, AUD-065), `git switch -c l04-chaincode-create-get` avant le commit |
 | 2026-11-10 | Le lecteur qui porte Node n'est pas monté : `node` et `npm` sont absents du PATH. La suite type-vérifie et lance Jest dans l'image épinglée. L'installation de Jest a signalé 6 avis npm de sévérité faible ; pas de `npm audit fix`. | T2.5a | contourné pour cet incrément |
 
+| T2.10 | Attenuation FIR quantifiee de 52.4227 dB, inferieure a la cible NFR-21 de 60 dB. Mesures realisees sur cinq ECG ; arbitrage requis avant toute modification des coefficients. |
+| T2.10/T2.12 | API partagee `saam.hashing` absente. L'identifiant `b6d7a73a` est provisoire et ne doit pas etre considere comme conforme au contrat officiel tant que l'API commune n'est pas disponible. |
+
 ## Trouvé, non construit
 
 | Date | Idée / besoin | Où | Proposé pour |
 |---|---|---|---|
+
+## Role I — T3.6 Ingestion Agent (2026-11-15)
+
+### Implemented
+- Created `saam/agents/ingestion.py`.
+- Added WFDB and 12-lead CSV ingestion.
+- Added ECG validation: dimensions, lead order, numeric values and finite samples.
+- Removed WFDB header comments and replaced original record/data filenames.
+- Restricted sanitized CSV output to the 12 expected ECG leads.
+- Added report sanitization for labeled patient names, identifiers and dates.
+- Sanitized artifacts are returned in memory; persistent storage and encryption remain backend responsibilities.
+- Backend-generated `CASE-UUID` is accepted and validated; the ingestion agent does not generate another case ID.
+
+### Tests
+- Created `tests/agents/test_ingestion.py`.
+- Dedicated tests: 10 passed.
+- Full test suite: 122 passed, 1 skipped, 9 deselected.
+- 8 warnings reported; no test failures.
+- Full suite duration: 54.88 seconds.
+
+### Remaining work
+- Strengthen detection of proper names in free-text reports (AC-02.3).
+- Add broader privacy tests, including metadata leakage checks.
+- Integrate the agent with the backend worker after T3.5 is available.
+- Verify the complete US-02 workflow, including backend case-ID assignment and distinct IDs for separate submissions.
