@@ -1,0 +1,9 @@
+[
+  {"label": "history runs as verifier whatever the token", "file": "src/app.ts", "old": "options.ledger.history(identity, caseId)", "new": "options.ledger.history(\"verifier\", caseId)"},
+  {"label": "history runs as agent-ingestion whatever the token", "file": "src/app.ts", "old": "options.ledger.history(identity, caseId)", "new": "options.ledger.history(\"agent-ingestion\", caseId)"},
+  {"label": "history runs as model-admin whatever the token", "file": "src/app.ts", "old": "options.ledger.history(identity, caseId)", "new": "options.ledger.history(\"model-admin\", caseId)"},
+  {"label": "no frameworkErrors option", "file": "src/app.ts", "old": "    frameworkErrors: (_error, _request, reply) => {\n      // The option types the reply with generics that `.code()` does not accept as a number.\n      void (reply as FastifyReply).code(400).send(errorBody(\"SCHEMA\", \"requête invalide\"));\n    },\n", "new": ""},
+  {"label": "frameworkErrors answers 414", "file": "src/app.ts", "old": ".code(400).send(errorBody(\"SCHEMA\", \"requête invalide\"));\n    },", "new": ".code(414).send(errorBody(\"SCHEMA\", \"requête invalide\"));\n    },"},
+  {"label": "frameworkErrors answers UNAVAILABLE", "file": "src/app.ts", "old": ".code(400).send(errorBody(\"SCHEMA\", \"requête invalide\"));\n    },", "new": ".code(400).send(errorBody(\"UNAVAILABLE\", \"requête invalide\"));\n    },"},
+  {"label": "frameworkErrors answers with the framework's own shape", "file": "src/app.ts", "old": ".code(400).send(errorBody(\"SCHEMA\", \"requête invalide\"));\n    },", "new": ".code(400).send({ error: \"Bad Request\", code: \"SCHEMA\" });\n    },"}
+]
