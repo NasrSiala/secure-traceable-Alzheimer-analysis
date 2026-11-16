@@ -7,13 +7,15 @@ from scipy.signal import butter, resample_poly, sosfiltfilt
 
 from saam.dsp.fir_fixed import (
     FS,
-    INPUT_SAMPLES,
     OUTPUT_SAMPLES,
     fir_fixed_point_multilead,
 )
 
-
 LEAD_COUNT = 12
+LEAD_NAMES = (
+    "I", "II", "III", "AVR", "AVL", "AVF",
+    "V1", "V2", "V3", "V4", "V5", "V6",
+)
 DURATION_SECONDS = 10
 OUTPUT_FS = 100
 ALIGNMENT_SAMPLES = 11
@@ -98,6 +100,64 @@ def _validate_signal(signal_mV, sampling_rate, units):
     return signal
 
 
+def _resample_and_trim(signal, sampling_rate):
+    if float(sampling_rate) != FS:
+        ratio = Fraction(FS / float(sampling_rate)).limit_denominator(10000)
+        signal = resample_poly(
+            signal,
+            up=ratio.numerator,
+            down=ratio.denominator,
+            axis=0,
+        )
+
+    required_samples = FS * DURATION_SECONDS
+    if signal.shape[0] < required_samples:
+        raise ValueError("Resampled signal contains fewer than 5000 samples")
+
+    return signal[:required_samples, :]
+
+
+def assess_signal_quality(signal_mV, sampling_rate, units=None):
+    """Assess the production quality score without repairing invalid samples."""
+    signal = _validate_signal(signal_mV, sampling_rate, units)
+    finite_mask = np.isfinite(signal)
+    finite_per_lead = finite_mask.mean(axis=0)
+    finite_quality = float(finite_per_lead.min())
+
+    if not finite_mask.all():
+        return {
+            "quality_score": finite_quality,
+            "per_lead_quality": {
+                lead: float(score)
+                for lead, score in zip(LEAD_NAMES, finite_per_lead)
+            },
+            "invalid_samples": int(np.count_nonzero(~finite_mask)),
+            "invalid_reason": "non_finite",
+        }
+
+    signal = _resample_and_trim(signal, sampling_rate)
+    with np.errstate(over="ignore", invalid="ignore"):
+        scaled = np.rint(signal * 1000.0)
+    valid_mask = (
+        np.isfinite(scaled)
+        & (scaled >= INT16_MIN)
+        & (scaled <= INT16_MAX)
+    )
+    valid_per_lead = valid_mask.mean(axis=0)
+    quality_score = float(valid_per_lead.min())
+    invalid_samples = int(np.count_nonzero(~valid_mask))
+
+    return {
+        "quality_score": quality_score,
+        "per_lead_quality": {
+            lead: float(score)
+            for lead, score in zip(LEAD_NAMES, valid_per_lead)
+        },
+        "invalid_samples": invalid_samples,
+        "invalid_reason": "out_of_range" if invalid_samples else None,
+    }
+
+
 def prepare_ecg(
     signal_mV,
     sampling_rate,
@@ -147,28 +207,12 @@ def prepare_ecg(
             "Processing stopped without replacing samples."
         )
 
-    # Resample to 500 Hz when necessary.
-    if float(sampling_rate) != FS:
-        ratio = Fraction(FS / float(sampling_rate)).limit_denominator(10000)
-        signal = resample_poly(
-            signal,
-            up=ratio.numerator,
-            down=ratio.denominator,
-            axis=0,
-        )
-
-    required_samples = FS * DURATION_SECONDS
-
-    if signal.shape[0] < required_samples:
-        raise ValueError(
-            "Resampled signal contains fewer than 5000 samples"
-        )
-
-    # Keep the first ten seconds.
-    signal = signal[:required_samples, :]
+    # Resample to 500 Hz and keep the first ten seconds.
+    signal = _resample_and_trim(signal, sampling_rate)
 
     # Convert mV to signed int16 according to the architecture.
-    scaled = np.rint(signal * 1000.0)
+    with np.errstate(over="ignore", invalid="ignore"):
+        scaled = np.rint(signal * 1000.0)
 
     valid_mask = (
         np.isfinite(scaled)

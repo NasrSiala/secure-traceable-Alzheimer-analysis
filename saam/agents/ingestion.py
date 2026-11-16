@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import io
 import re
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -14,13 +14,16 @@ import wfdb
 
 from saam.agents.redaction import sanitize_report as redact_report
 
-
 LEADS = (
     "I", "II", "III", "AVR", "AVL", "AVF",
     "V1", "V2", "V3", "V4", "V5", "V6",
 )
 
-CASE_ID_PATTERN = re.compile(r"^CASE-[0-9a-fA-F-]{36}$")
+CASE_ID_PATTERN = re.compile(
+    r"^CASE-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+    r"[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
 
 IDENTITY_LABEL_PATTERN = re.compile(
     r"(?i)\b(patient(?:\s+name)?|nom(?:\s+du\s+patient)?|"
@@ -42,7 +45,7 @@ class IngestionResult:
     leads: tuple[str, ...]
     units: tuple[str, ...]
     files: dict[str, bytes]
-    report_text: Optional[str]
+    report_text: str | None
     source_format: str
 
 
@@ -50,11 +53,27 @@ def validate_case_id(case_id: str) -> None:
     if not isinstance(case_id, str) or not CASE_ID_PATTERN.fullmatch(case_id):
         raise ValueError("case_id must have the format CASE-<UUID>.")
 
+    try:
+        parsed = uuid.UUID(case_id[5:])
+    except ValueError as exc:
+        raise ValueError("case_id must contain a valid UUID.") from exc
+
+    if str(parsed) != case_id[5:].lower():
+        raise ValueError("case_id must contain a canonical UUID.")
+
+
+def new_case_id() -> str:
+    """Generate an independent pseudonymous UUID for a submitted case.
+
+    This helper does not create or persist a backend case record.
+    """
+    return f"CASE-{uuid.uuid4()}"
+
 
 def sanitize_report(
-    report_text: Optional[str],
+    report_text: str | None,
     known_names: tuple[str, ...] = (),
-) -> Optional[str]:
+) -> str | None:
     return redact_report(report_text, known_names)
 
 
@@ -83,9 +102,43 @@ def read_wfdb(header_path: Path, case_id: str):
         raise ValueError("WFDB input must be a .hea file.")
 
     if not header_path.is_file():
-        raise FileNotFoundError(header_path)
+        raise FileNotFoundError("WFDB header file not found.")
 
-    record = wfdb.rdrecord(str(header_path.with_suffix("")))
+    try:
+        lines = [
+            line.strip()
+            for line in header_path.read_text(encoding="ascii").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        ]
+    except (OSError, UnicodeError):
+        raise ValueError("Unable to read WFDB header.") from None
+
+    if len(lines) < 13:
+        raise ValueError("WFDB header must contain 12 signal definitions.")
+
+    first_fields = lines[0].split()
+    if len(first_fields) < 3:
+        raise ValueError("Invalid WFDB record header.")
+
+    header_values_valid = True
+    try:
+        signal_count = int(first_fields[1])
+        frequency_parts = [float(part) for part in first_fields[2].split("/")]
+    except ValueError:
+        header_values_valid = False
+
+    if (
+        not header_values_valid
+        or signal_count != 12
+        or len(frequency_parts) not in (1, 2)
+        or any(not np.isfinite(part) or part <= 0 for part in frequency_parts)
+    ):
+        raise ValueError("Invalid WFDB record header.")
+
+    try:
+        record = wfdb.rdrecord(str(header_path.with_suffix("")))
+    except (OSError, ValueError, TypeError, IndexError):
+        raise ValueError("Unable to read WFDB record.") from None
 
     signal = np.asarray(record.p_signal, dtype=np.float64)
     leads = tuple(str(name).upper() for name in record.sig_name)
@@ -99,25 +152,13 @@ def read_wfdb(header_path: Path, case_id: str):
     if len(units) != 12 or any(unit.lower() != "mv" for unit in units):
         raise ValueError("WFDB signals must use mV units.")
 
-    lines = [
-        line.strip()
-        for line in header_path.read_text(encoding="ascii").splitlines()
-        if line.strip() and not line.lstrip().startswith("#")
-    ]
-
-    if len(lines) < 13:
-        raise ValueError("WFDB header must contain 12 signal definitions.")
-
-    first_fields = lines[0].split()
-
-    if len(first_fields) < 4 or int(first_fields[1]) != 12:
-        raise ValueError("Invalid WFDB record header.")
-
     record_name = case_id.lower().replace("-", "_")
     output_files: dict[str, bytes] = {}
     data_mapping: dict[str, str] = {}
 
-    new_lines = [" ".join([record_name, *first_fields[1:]])]
+    # Rebuild only structural fields. Optional WFDB base-date/base-time fields
+    # can identify a patient and are deliberately omitted.
+    new_lines = [f"{record_name} 12 {first_fields[2]} {signal.shape[0]}"]
 
     for line in lines[1:13]:
         fields = line.split()
@@ -138,7 +179,10 @@ def read_wfdb(header_path: Path, case_id: str):
             suffix = "" if not data_mapping else f"_{len(data_mapping)}"
             new_name = f"{record_name}{suffix}.dat"
             data_mapping[original_name] = new_name
-            output_files[new_name] = original_path.read_bytes()
+            try:
+                output_files[new_name] = original_path.read_bytes()
+            except OSError:
+                raise ValueError("Unable to read WFDB signal data.") from None
 
         fields[0] = data_mapping[original_name]
         new_lines.append(" ".join(fields))
@@ -152,15 +196,21 @@ def read_wfdb(header_path: Path, case_id: str):
 
 def read_csv(csv_path: Path, sampling_rate: float, case_id: str):
     if not csv_path.is_file():
-        raise FileNotFoundError(csv_path)
+        raise FileNotFoundError("ECG CSV file not found.")
 
     if not np.isfinite(sampling_rate) or sampling_rate <= 0:
         raise ValueError("CSV sampling rate must be positive and finite.")
 
     try:
         table = pd.read_csv(csv_path)
-    except Exception as exc:
-        raise ValueError("Unable to read ECG CSV.") from exc
+    except (
+        OSError,
+        UnicodeError,
+        pd.errors.EmptyDataError,
+        pd.errors.ParserError,
+        ValueError,
+    ):
+        raise ValueError("Unable to read ECG CSV.") from None
 
     table.columns = [str(column).strip().upper() for column in table.columns]
 
@@ -172,10 +222,14 @@ def read_csv(csv_path: Path, sampling_rate: float, case_id: str):
 
     table = table.loc[:, list(LEADS)]
 
+    conversion_failed = False
     try:
         signal = table.to_numpy(dtype=np.float64)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("CSV contains non-numeric values.") from exc
+    except (TypeError, ValueError):
+        conversion_failed = True
+
+    if conversion_failed:
+        raise ValueError("CSV contains non-numeric values.")
 
     validate_signal(signal, LEADS)
 
@@ -196,8 +250,8 @@ def read_csv(csv_path: Path, sampling_rate: float, case_id: str):
 def ingest_ecg(
     ecg_path: str | Path,
     case_id: str,
-    csv_sampling_rate: Optional[float] = None,
-    report_text: Optional[str] = None,
+    csv_sampling_rate: float | None = None,
+    report_text: str | None = None,
     known_names: tuple[str, ...] = (),
 ) -> IngestionResult:
     validate_case_id(case_id)
@@ -219,6 +273,10 @@ def ingest_ecg(
     else:
         raise ValueError("Unsupported format. Use WFDB (.hea) or CSV.")
 
+    sanitized_report = sanitize_report(report_text, known_names)
+    if sanitized_report is not None:
+        files["report.txt"] = sanitized_report.encode("utf-8")
+
     return IngestionResult(
         case_id=case_id,
         signal=signal,
@@ -226,6 +284,6 @@ def ingest_ecg(
         leads=leads,
         units=units,
         files=files,
-        report_text=sanitize_report(report_text, known_names),
+        report_text=sanitized_report,
         source_format=source_format,
     )

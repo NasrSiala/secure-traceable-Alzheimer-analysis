@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from saam.dsp.prepare import (
+    assess_signal_quality,
     load_fir_coefficients,
     prepare_ecg,
 )
@@ -154,4 +155,29 @@ def test_prepare_ecg_rejects_invalid_samples_even_above_threshold():
 
     with pytest.raises(ValueError, match="despite meeting the quality threshold"):
         prepare_ecg(signal, sampling_rate=500, quality_min=0.90)
+
+
+def test_quality_assessment_marks_nan_samples_per_lead():
+    signal = make_ecg()
+    signal[:750, 0] = np.nan
+
+    assessment = assess_signal_quality(signal, 500, units=["mV"] * 12)
+
+    assert assessment["quality_score"] == pytest.approx(0.85)
+    assert assessment["per_lead_quality"]["I"] == pytest.approx(0.85)
+    assert assessment["per_lead_quality"]["II"] == pytest.approx(1.0)
+    assert assessment["invalid_samples"] == 750
+    assert assessment["invalid_reason"] == "non_finite"
+
+
+def test_quality_assessment_counts_values_outside_int16_range():
+    signal = make_ecg()
+    signal[:750, 0] = 40.0
+
+    assessment = assess_signal_quality(signal, 500, units=["mV"] * 12)
+
+    assert assessment["quality_score"] == pytest.approx(0.85)
+    assert assessment["per_lead_quality"]["I"] == pytest.approx(0.85)
+    assert assessment["invalid_samples"] == 750
+    assert assessment["invalid_reason"] == "out_of_range"
 

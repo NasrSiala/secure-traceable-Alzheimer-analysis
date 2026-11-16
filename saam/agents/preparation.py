@@ -3,22 +3,25 @@
 import io
 import json
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
-from saam.agents.ingestion import IngestionResult, LEADS
-from saam.dsp.prepare import QUALITY_MIN, prepare_ecg
+from saam.agents.ingestion import LEADS, IngestionResult, validate_case_id
+from saam.dsp.prepare import (
+    QUALITY_MIN,
+    assess_signal_quality,
+    prepare_ecg,
+)
 
 
 @dataclass(frozen=True)
 class PreparationResult:
     case_id: str
     status: str
-    quality_score: Optional[float]
+    quality_score: float | None
     files: dict[str, bytes]
     report: dict
-    error: Optional[str] = None
+    error: str | None = None
 
 
 def _npy_bytes(array: np.ndarray) -> bytes:
@@ -39,10 +42,10 @@ def _report_bytes(report: dict) -> bytes:
 def _result(
     ingestion: IngestionResult,
     status: str,
-    quality_score: Optional[float],
+    quality_score: float | None,
     report: dict,
-    arrays: Optional[dict[str, np.ndarray]] = None,
-    error: Optional[str] = None,
+    arrays: dict[str, np.ndarray] | None = None,
+    error: str | None = None,
 ) -> PreparationResult:
     files: dict[str, bytes] = {}
 
@@ -71,17 +74,20 @@ def prepare_case(
     if not isinstance(ingestion, IngestionResult):
         raise TypeError("ingestion must be an IngestionResult")
 
+    validate_case_id(ingestion.case_id)
+
+    valid_quality_min = (
+        isinstance(quality_min, (int, float))
+        and np.isfinite(quality_min)
+        and 0.0 <= quality_min <= 1.0
+    )
     base_report = {
         "case_id": ingestion.case_id,
         "source_format": ingestion.source_format,
-        "quality_min": quality_min,
+        "quality_min": float(quality_min) if valid_quality_min else None,
     }
 
-    if (
-        not isinstance(quality_min, (int, float))
-        or not np.isfinite(quality_min)
-        or not 0.0 <= quality_min <= 1.0
-    ):
+    if not valid_quality_min:
         report = {
             **base_report,
             "quality_pass": False,
@@ -93,27 +99,22 @@ def prepare_case(
             error=report["reason"],
         )
 
+    quality_assessment = None
     try:
         signal = np.asarray(ingestion.signal, dtype=np.float64)
 
-        if signal.ndim != 2 or signal.shape[1] != len(LEADS):
-            raise ValueError("ECG must have shape (samples, 12)")
-
         if tuple(ingestion.leads) != LEADS:
             raise ValueError("Unexpected ECG lead names or order")
+        if ingestion.source_format not in {"WFDB", "CSV"}:
+            raise ValueError("Unsupported ECG source format")
 
-        if len(ingestion.units) != len(LEADS) or any(
-            str(unit).lower() != "mv" for unit in ingestion.units
-        ):
-            raise ValueError("All ECG leads must be expressed in mV")
-
-        finite_per_lead = np.isfinite(signal).mean(axis=0)
-        quality_score = float(finite_per_lead.min())
-
-        per_lead_quality = {
-            lead: float(score)
-            for lead, score in zip(LEADS, finite_per_lead)
-        }
+        quality_assessment = assess_signal_quality(
+            signal,
+            ingestion.sampling_rate,
+            units=ingestion.units,
+        )
+        quality_score = float(quality_assessment["quality_score"])
+        per_lead_quality = quality_assessment["per_lead_quality"]
 
         quality_report = {
             **base_report,
@@ -121,6 +122,8 @@ def prepare_case(
             "quality_min": float(quality_min),
             "quality_pass": quality_score >= quality_min,
             "per_lead_quality": per_lead_quality,
+            "invalid_samples": quality_assessment["invalid_samples"],
+            "invalid_reason": quality_assessment["invalid_reason"],
             "invalid_sample_policy": (
                 "No interpolation or replacement; invalid samples "
                 "are rejected."
@@ -173,12 +176,40 @@ def prepare_case(
             arrays=arrays,
         )
 
-    except (ValueError, TypeError, OSError) as exc:
+    except (ValueError, TypeError, OSError, OverflowError):
+        quality_score = (
+            float(quality_assessment["quality_score"])
+            if quality_assessment is not None
+            else None
+        )
+        per_lead_quality = (
+            quality_assessment["per_lead_quality"]
+            if quality_assessment is not None
+            else None
+        )
         report = {
             **base_report,
+            "quality_score": quality_score,
+            "per_lead_quality": per_lead_quality,
+            "invalid_samples": (
+                quality_assessment["invalid_samples"]
+                if quality_assessment is not None
+                else None
+            ),
+            "invalid_reason": (
+                quality_assessment["invalid_reason"]
+                if quality_assessment is not None
+                else None
+            ),
             "status": "rejected",
             "quality_pass": False,
-            "reason": str(exc),
+            "reason": "préparation impossible",
+            "error_code": (
+                "INVALID_SIGNAL"
+                if quality_assessment is not None
+                and quality_assessment["invalid_reason"] is not None
+                else "PREPARATION_ERROR"
+            ),
             "invalid_sample_policy": (
                 "No interpolation, clipping, or replacement of "
                 "invalid samples."
@@ -187,7 +218,7 @@ def prepare_case(
         return _result(
             ingestion,
             "rejected",
-            None,
+            quality_score,
             report,
-            error=str(exc),
+            error=report["reason"],
         )

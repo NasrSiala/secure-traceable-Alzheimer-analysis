@@ -1,13 +1,12 @@
-from pathlib import Path
 import uuid
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
 import wfdb
 
-from saam.agents.ingestion import ingest_ecg, sanitize_report
-
+from saam.agents.ingestion import ingest_ecg, new_case_id, sanitize_report
 
 CASE_ID = f"CASE-{uuid.uuid4()}"
 
@@ -104,6 +103,30 @@ def test_wfdb_ingestion_removes_original_record_name(tmp_path):
     assert CASE_ID.lower().replace("-", "_") in sanitized_header
 
 
+def test_wfdb_header_drops_optional_personal_date_and_time(tmp_path):
+    header_path = create_wfdb_record(tmp_path)
+    lines = header_path.read_text(encoding="ascii").splitlines()
+    lines[0] += " 12:30:00 12/04/1980"
+    header_path.write_text("\n".join(lines) + "\n", encoding="ascii")
+
+    result = ingest_ecg(header_path, CASE_ID)
+    output_dir = tmp_path / "pseudonymized"
+    output_dir.mkdir()
+    for filename, content in result.files.items():
+        (output_dir / filename).write_bytes(content)
+
+    output_header = output_dir / next(
+        filename for filename in result.files if filename.endswith(".hea")
+    )
+    header_text = output_header.read_text(encoding="ascii")
+    output_record = wfdb.rdrecord(str(output_header.with_suffix("")))
+
+    assert "12/04/1980" not in header_text
+    assert "12:30:00" not in header_text
+    assert output_record.p_signal.shape == (1000, 12)
+    assert output_record.fs == 500
+
+
 def test_wfdb_output_contains_data_file(tmp_path):
     header_path = create_wfdb_record(tmp_path)
 
@@ -130,6 +153,22 @@ def test_report_removes_labeled_personal_information():
     assert "Normal ECG" in sanitized
 
 
+def test_sanitized_report_is_part_of_original_file_set(tmp_path):
+    csv_path = create_csv(tmp_path / "ecg.csv")
+    report_text = "Patient Name: John Smith\nConclusion: Normal ECG."
+
+    result = ingest_ecg(
+        csv_path,
+        new_case_id(),
+        csv_sampling_rate=500,
+        report_text=report_text,
+    )
+
+    assert result.report_text == "Patient Name: [ANONYMISÉ]\nConclusion: Normal ECG."
+    assert result.files["report.txt"].decode("utf-8") == result.report_text
+    assert b"John Smith" not in result.files["report.txt"]
+
+
 def test_csv_requires_sampling_rate(tmp_path):
     csv_path = create_csv(tmp_path / "ecg.csv")
 
@@ -146,6 +185,17 @@ def test_invalid_case_id_is_rejected(tmp_path):
             "INVALID-ID",
             csv_sampling_rate=500,
         )
+
+
+def test_new_case_id_returns_a_valid_pseudonymous_uuid():
+    first = new_case_id()
+    second = new_case_id()
+
+    assert first.startswith("CASE-")
+    assert second.startswith("CASE-")
+    assert first != second
+    assert len(first.removeprefix("CASE-")) == 36
+    assert len(second.removeprefix("CASE-")) == 36
 
 
 def test_csv_with_wrong_number_of_leads_is_rejected(tmp_path):
@@ -246,7 +296,7 @@ def test_wfdb_header_does_not_leak_personal_metadata(tmp_path):
     assert "private_record" not in generated_header
 
 
-def test_same_patient_submissions_receive_distinct_backend_case_ids(tmp_path):
+def test_same_patient_submissions_receive_distinct_pseudonymous_ids(tmp_path):
     leads = [
         "I", "II", "III", "AVR", "AVL", "AVF",
         "V1", "V2", "V3", "V4", "V5", "V6",
@@ -258,8 +308,8 @@ def test_same_patient_submissions_receive_distinct_backend_case_ids(tmp_path):
         columns=leads,
     ).to_csv(source_path, index=False)
 
-    first_case_id = "CASE-11111111-1111-1111-1111-111111111111"
-    second_case_id = "CASE-22222222-2222-2222-2222-222222222222"
+    first_case_id = new_case_id()
+    second_case_id = new_case_id()
 
     first = ingest_ecg(
         source_path,
@@ -275,7 +325,7 @@ def test_same_patient_submissions_receive_distinct_backend_case_ids(tmp_path):
         report_text="Patient ID: SAME-PATIENT-001",
     )
 
-    # The backend supplies two different case identifiers.
+    # Each independent submission receives an unrelated pseudonymous UUID.
     assert first.case_id == first_case_id
     assert second.case_id == second_case_id
     assert first.case_id != second.case_id
@@ -283,6 +333,10 @@ def test_same_patient_submissions_receive_distinct_backend_case_ids(tmp_path):
     # No original patient identifier remains in the reports.
     assert "SAME-PATIENT-001" not in first.report_text
     assert "SAME-PATIENT-001" not in second.report_text
+    assert "report.txt" in first.files
+    assert "report.txt" in second.files
+    assert b"SAME-PATIENT-001" not in first.files["report.txt"]
+    assert b"SAME-PATIENT-001" not in second.files["report.txt"]
 
     # The ingestion results expose no patient-linkage field.
     assert not hasattr(first, "patient_id")
@@ -303,3 +357,109 @@ def test_missing_csv_file_is_rejected(tmp_path):
             CASE_ID,
             csv_sampling_rate=500,
         )
+
+
+def test_unreadable_csv_error_does_not_expose_source_path(tmp_path):
+    private_path = tmp_path / "patient_private_report.csv"
+    private_path.write_text("", encoding="utf-8")
+
+    with pytest.raises(ValueError) as error:
+        ingest_ecg(
+            private_path,
+            CASE_ID,
+            csv_sampling_rate=500,
+        )
+
+    assert "Unable to read ECG CSV." == str(error.value)
+    assert str(tmp_path) not in str(error.value)
+    assert "patient_private_report" not in str(error.value)
+
+
+def test_unreadable_wfdb_error_does_not_expose_source_path(tmp_path):
+    private_path = tmp_path / "patient_private_record.hea"
+    private_path.write_text("not a valid WFDB header\n", encoding="ascii")
+
+    with pytest.raises(ValueError) as error:
+        ingest_ecg(private_path, CASE_ID)
+
+    assert "WFDB header must contain 12 signal definitions." == str(error.value)
+    assert str(tmp_path) not in str(error.value)
+    assert "patient_private_record" not in str(error.value)
+
+
+def test_csv_numeric_conversion_error_does_not_expose_cell_or_path(tmp_path):
+    private_value = "SENSITIVE-FICTITIOUS-CSV-CELL-92817"
+    private_path = tmp_path / "patient_private_measurements.csv"
+    frame = pd.DataFrame(
+        np.ones((2, 12)),
+        columns=[
+            "I", "II", "III", "AVR", "AVL", "AVF",
+            "V1", "V2", "V3", "V4", "V5", "V6",
+        ],
+    )
+    frame["I"] = frame["I"].astype(object)
+    frame.loc[0, "I"] = private_value
+    frame.to_csv(private_path, index=False)
+
+    with pytest.raises(ValueError) as error:
+        ingest_ecg(private_path, CASE_ID, csv_sampling_rate=500)
+
+    assert str(error.value) == "CSV contains non-numeric values."
+    assert private_value not in repr(error.value)
+    assert str(tmp_path) not in repr(error.value)
+    assert private_path.name not in repr(error.value)
+    assert error.value.__cause__ is None
+    assert error.value.__context__ is None
+
+
+@pytest.mark.parametrize(
+    ("header_line", "expected_message"),
+    [
+        ("private_record", "Invalid WFDB record header."),
+        (
+            "private_record twelve 500",
+            "Invalid WFDB record header.",
+        ),
+        (
+            "private_record 12 not-a-frequency",
+            "Invalid WFDB record header.",
+        ),
+        ("private_record 12 0", "Invalid WFDB record header."),
+        ("private_record 12 nan", "Invalid WFDB record header."),
+    ],
+)
+def test_malformed_wfdb_record_header_is_generic_and_private(
+    tmp_path,
+    header_line,
+    expected_message,
+):
+    valid_header = create_wfdb_record(tmp_path)
+    lines = valid_header.read_text(encoding="ascii").splitlines()
+    lines[0] = header_line
+    valid_header.write_text("\n".join(lines) + "\n", encoding="ascii")
+    private_path = valid_header
+
+    with pytest.raises(ValueError) as error:
+        ingest_ecg(private_path, CASE_ID)
+
+    assert str(error.value) == expected_message
+    assert str(tmp_path) not in repr(error.value)
+    assert private_path.name not in repr(error.value)
+    assert "private_record" not in repr(error.value)
+    assert error.value.__cause__ is None
+    assert error.value.__context__ is None
+
+
+def test_incomplete_wfdb_header_is_generic_and_private(tmp_path):
+    private_path = tmp_path / "patient_private_incomplete.hea"
+    private_path.write_text("private_record 12 500\n", encoding="ascii")
+
+    with pytest.raises(ValueError) as error:
+        ingest_ecg(private_path, CASE_ID)
+
+    assert str(error.value) == "WFDB header must contain 12 signal definitions."
+    assert str(tmp_path) not in repr(error.value)
+    assert private_path.name not in repr(error.value)
+    assert "private_record" not in repr(error.value)
+    assert error.value.__cause__ is None
+    assert error.value.__context__ is None
