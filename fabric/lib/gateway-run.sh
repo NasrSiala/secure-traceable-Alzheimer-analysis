@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Shared by fabric/gateway-check.sh, fabric/history-check.sh and fabric/spike-latency.sh:
-# where the ledger-gateway scripts run (host Node, else the pinned `spike` image) and how they
-# fail. Source it after setting FABRIC_DIR; it runs nothing by itself.
+# Shared by fabric/gateway-check.sh, fabric/history-check.sh, fabric/model-check.sh and
+# fabric/spike-latency.sh: where the ledger-gateway scripts run (host Node, else the pinned
+# `spike` image) and how they fail. Source it after setting FABRIC_DIR; it runs nothing by
+# itself. (spike-latency.sh uses the probes and `unavailable`, not run_gateway_script.)
 #
 # The probes below are functions so that tests/scripts can replace them.
 

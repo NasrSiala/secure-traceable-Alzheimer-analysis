@@ -7,6 +7,7 @@ script reaches `docker`.
 
 from __future__ import annotations
 
+import re
 import shutil
 from collections.abc import Callable
 from pathlib import Path
@@ -67,3 +68,48 @@ def test_enrollment_deploys_through_this_wrapper(repo_root: Path) -> None:
     enroll = (repo_root / "fabric" / "enroll-identities.sh").read_text(encoding="utf-8")
     assert "bash ./deploy-chaincode.sh" in enroll
     assert "/work/scripts/deploy-chaincode.sh" not in enroll
+
+
+def test_approval_and_commit_state_one_definition(repo_root: Path) -> None:
+    """T2.5b: the definition is the same in `approveformyorg` and in `commit`, whatever number
+    it carries. A mismatch makes the commit fail on a network that was approved with another."""
+    script = (repo_root / "fabric" / "scripts" / "deploy-chaincode.sh").read_text(
+        encoding="utf-8"
+    )
+    versions = re.findall(r"--version (\S+)", script)
+    sequences = re.findall(r"--sequence (\S+)", script)
+    assert len(versions) == 2  # approve, commit
+    assert len(sequences) == 2
+    assert len(set(versions)) == 1
+    assert len(set(sequences)) == 1
+
+
+def test_a_chaincode_with_more_transactions_needs_no_new_definition(
+    repo_root: Path,
+) -> None:
+    """T2.5b: RegisterModel and GetModel join the contract without a new sequence.
+
+    The package is a chaincode-as-a-service connection file: no source, no build output. Its
+    identifier, and so the definition the peers approved, does not change when the contract
+    does. A running network picks the new code up when enroll-identities.sh recreates the two
+    chaincode services; a fresh network commits the definition once.
+    """
+    enroll = (repo_root / "fabric" / "enroll-identities.sh").read_text(encoding="utf-8")
+    packaging = enroll[
+        enroll.index("write_chaincode_packages()") : enroll.index(
+            "wait_for_chaincode()"
+        )
+    ]
+    assert 'code = tgz([("connection.json", connection)])' in packaging
+    assert 'tgz([("code.tar.gz", code), ("metadata.json", metadata)])' in packaging
+    for source in ("dist/", "node_modules", "chaincode/provenance", "package.json"):
+        assert source not in packaging
+
+    deploying = enroll[
+        enroll.index("deploy_chaincode()") : enroll.index("cmd_enroll()")
+    ]
+    recreated = deploying.index(
+        "docker rm -f saam-medtrace-cc-org1 saam-medtrace-cc-org2"
+    )
+    started = deploying.index("up -d cc-org1 cc-org2")
+    assert recreated < started

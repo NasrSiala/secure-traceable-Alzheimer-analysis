@@ -7,39 +7,17 @@ The script is sourced and `npm` / `docker` are replaced by shell functions, so b
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 from subprocess import CompletedProcess
 
 import pytest
+from gateway_run_support import BashRun, CheckScript
 
-BashRun = Callable[..., CompletedProcess[str]]
-
-FAKE_NPM = r"""
-npm() {
-  printf 'npm %s\n' "$*" >> "$LOG"
-  case "$*" in
-    "run build") return "${BUILD_STATUS:-0}" ;;
-    "run check:history") return "${CHECK_STATUS:-0}" ;;
-  esac
-}
-"""
-
-FAKE_DOCKER = r"""
-docker() {
-  printf 'docker %s\n' "$*" >> "$LOG"
-  case "$*" in
-    *" spike run build") return "${BUILD_STATUS:-0}" ;;
-    *" spike run check:history") return "${CHECK_STATUS:-0}" ;;
-  esac
-}
-"""
-
-HOST = "wallet_present() { return 0; }; host_can_run() { return 0; };" + FAKE_NPM
-CONTAINER = (
-    "wallet_present() { return 0; }; host_can_run() { return 1; }; "
-    "runtime_prepared() { return 0; };" + FAKE_DOCKER
-)
+SCRIPT = CheckScript("fabric/history-check.sh", "check:history")
+FAKE_NPM = SCRIPT.fake_npm
+FAKE_DOCKER = SCRIPT.fake_docker
+HOST = SCRIPT.host
+CONTAINER = SCRIPT.container
 
 
 def _run(
@@ -49,19 +27,9 @@ def _run(
     *,
     build: int = 0,
     check: int = 0,
+    env: dict[str, str] | None = None,
 ) -> tuple[CompletedProcess[str], list[str]]:
-    log = tmp_path / "calls.log"
-    result = bash_run(
-        ["-c", f"source fabric/history-check.sh; {setup}\nmain"],
-        env={
-            "LOG": log.as_posix(),
-            "BUILD_STATUS": str(build),
-            "CHECK_STATUS": str(check),
-        },
-        timeout=60,
-    )
-    lines = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
-    return result, lines
+    return SCRIPT.run(bash_run, tmp_path, setup, build=build, check=check, env=env)
 
 
 def test_sourcing_the_script_runs_nothing(bash_run: BashRun) -> None:
@@ -138,13 +106,20 @@ def test_without_usable_node_or_runtime_nothing_runs(
     assert calls == []
 
 
-def test_the_three_scripts_share_one_dispatch(repo_root: Path) -> None:
-    """The host-or-container logic lives in fabric/lib/gateway-run.sh, not in three copies."""
+def test_the_check_scripts_share_one_dispatch(repo_root: Path) -> None:
+    """The host-or-container logic lives in fabric/lib/gateway-run.sh, not in a copy per script,
+    and the library names every script that uses it (AUD-093)."""
     lib = (repo_root / "fabric" / "lib" / "gateway-run.sh").read_text(encoding="utf-8")
     assert "run_gateway_script()" in lib
     assert "host_can_run()" in lib
-    for name in ("gateway-check.sh", "history-check.sh", "spike-latency.sh"):
+    for name in (
+        "gateway-check.sh",
+        "history-check.sh",
+        "model-check.sh",
+        "spike-latency.sh",
+    ):
         script = (repo_root / "fabric" / name).read_text(encoding="utf-8")
         assert "lib/gateway-run.sh" in script, name
         assert "host_can_run()" not in script, name
         assert "wallet_present()" not in script, name
+        assert f"fabric/{name}" in lib, name

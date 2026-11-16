@@ -10,6 +10,14 @@ import {
   requireUuid,
 } from "./artifact";
 import { fail } from "./errors";
+import {
+  MODEL_KEY,
+  type ModelRecord,
+  parseClientModel,
+  requireModelAdmin,
+  requireModelName,
+  requireModelVersion,
+} from "./model";
 
 const CASE_ARTIFACT = "case~artifact";
 const ARTIFACT_ANCHORED = "ArtifactAnchored";
@@ -143,7 +151,7 @@ function orderParentToChild(records: ArtifactRecord[]): ArtifactRecord[] {
 
 @Info({
   title: "Provenance",
-  description: "Creates, reads, and lists closed-schema ARTIFACT records",
+  description: "Creates, reads, and lists closed-schema ARTIFACT records; registers and reads MODEL records",
 })
 export class Provenance extends Contract {
   @Transaction()
@@ -191,5 +199,40 @@ export class Provenance extends Contract {
     requireCaseId(caseId);
     const records = await recordsForCase(ctx.stub, caseId);
     return JSON.stringify(orderParentToChild(records));
+  }
+
+  @Transaction()
+  public async RegisterModel(ctx: Context, json: string): Promise<string> {
+    // Same order as CreateArtifactRecord: the role first, so that a caller without it learns
+    // nothing about the schema or about which models exist.
+    const caller = callerOf(ctx);
+    requireModelAdmin(caller);
+    const client = parseClientModel(json);
+    const stub = ctx.stub;
+    const key = stub.createCompositeKey(MODEL_KEY, [client.name, client.version]);
+    const existing = await stub.getState(key);
+    if (existing.length !== 0) {
+      fail("DUPLICATE", "model name and version already exist");
+    }
+    const record: ModelRecord = {
+      docType: "model",
+      ...client,
+      registeredAt: stub.getDateTimestamp().toISOString(),
+      registeredBy: caller.subject,
+    };
+    const payload = JSON.stringify(record);
+    await stub.putState(key, Buffer.from(payload));
+    return payload;
+  }
+
+  @Transaction(false)
+  public async GetModel(ctx: Context, name: string, version: string): Promise<string> {
+    requireModelName(name);
+    requireModelVersion(version);
+    const stored = await ctx.stub.getState(ctx.stub.createCompositeKey(MODEL_KEY, [name, version]));
+    if (stored.length === 0) {
+      fail("NOT_FOUND", "model is not on the ledger");
+    }
+    return Buffer.from(stored).toString("utf8");
   }
 }

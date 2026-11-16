@@ -28,7 +28,7 @@ const CLIENT_FIELDS = new Set<string>([
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const CASE_ID = /^CASE-[0-9a-f-]{36}$/;
-const SHA256 = /^[0-9a-f]{64}$/;
+export const SHA256 = /^[0-9a-f]{64}$/;
 const ISO_UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,9})?Z$/;
 
 export interface ArtifactRecord {
@@ -55,11 +55,11 @@ export interface CallerIdentity {
   agent: string | null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function requireString(value: unknown, field: string): string {
+export function requireString(value: unknown, field: string): string {
   if (typeof value !== "string") {
     fail("SCHEMA", `${field} must be a string`);
   }

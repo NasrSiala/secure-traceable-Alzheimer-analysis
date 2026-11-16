@@ -80,9 +80,14 @@ async function refusalCode(attempt: Promise<unknown>): Promise<string> {
   }
 }
 
+// A reply that is not a list is a wrong answer, not an empty history: reading it as [] would
+// let "an unknown case has no record" pass for a reply the chaincode never gives.
 async function history(ledger: LedgerSession, caseId: string): Promise<StoredArtifact[]> {
   const parsed: unknown = JSON.parse(await ledger.history("agent-ingestion", caseId));
-  return Array.isArray(parsed) ? (parsed as StoredArtifact[]) : [];
+  if (!Array.isArray(parsed)) {
+    throw new Error("GetCaseHistory did not return a list");
+  }
+  return parsed as StoredArtifact[];
 }
 
 async function main(): Promise<void> {

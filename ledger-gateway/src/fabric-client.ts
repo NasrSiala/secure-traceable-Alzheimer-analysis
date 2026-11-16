@@ -3,7 +3,7 @@ import { promises as fs } from "node:fs";
 import * as path from "node:path";
 
 import * as grpc from "@grpc/grpc-js";
-import { connect, hash, signers, type Gateway } from "@hyperledger/fabric-gateway";
+import { connect, hash, signers, type Contract, type Gateway } from "@hyperledger/fabric-gateway";
 
 import { envSetting } from "./settings";
 
@@ -18,6 +18,8 @@ export interface ArtifactLedger {
 
 export interface LedgerSession extends ArtifactLedger {
   history(identity: string, caseId: string): Promise<string>;
+  registerModel(identity: string, payload: string): Promise<string>;
+  getModel(identity: string, name: string, version: string): Promise<string>;
 }
 
 export interface LedgerSettings {
@@ -146,29 +148,36 @@ export async function connectLedger(
     return created;
   }
 
+  async function contractFor(identity: string): Promise<Contract> {
+    const { gateway } = await sessionFor(identity);
+    return gateway.getNetwork(channelName).getContract(chaincodeName, "Provenance");
+  }
+
+  // A transaction that changes the ledger: endorsed as the chaincode's policy requires, then
+  // committed.
+  async function submit(identity: string, transaction: string, ...args: string[]): Promise<string> {
+    const contract = await contractFor(identity);
+    const result = await withDeadline(contract.submitTransaction(transaction, ...args));
+    return Buffer.from(result).toString("utf8");
+  }
+
+  // A query: answered by one peer, nothing is written.
+  async function evaluate(
+    identity: string,
+    transaction: string,
+    ...args: string[]
+  ): Promise<string> {
+    const contract = await contractFor(identity);
+    const result = await withDeadline(contract.evaluateTransaction(transaction, ...args));
+    return Buffer.from(result).toString("utf8");
+  }
+
   return {
-    async create(identity: string, payload: string): Promise<string> {
-      const { gateway } = await sessionFor(identity);
-      const contract = gateway.getNetwork(channelName).getContract(chaincodeName, "Provenance");
-      const result = await withDeadline(
-        contract.submitTransaction("CreateArtifactRecord", payload),
-      );
-      return Buffer.from(result).toString("utf8");
-    },
-    async read(identity: string, artifactId: string): Promise<string> {
-      const { gateway } = await sessionFor(identity);
-      const contract = gateway.getNetwork(channelName).getContract(chaincodeName, "Provenance");
-      const result = await withDeadline(
-        contract.evaluateTransaction("GetArtifactRecord", artifactId),
-      );
-      return Buffer.from(result).toString("utf8");
-    },
-    async history(identity: string, caseId: string): Promise<string> {
-      const { gateway } = await sessionFor(identity);
-      const contract = gateway.getNetwork(channelName).getContract(chaincodeName, "Provenance");
-      const result = await withDeadline(contract.evaluateTransaction("GetCaseHistory", caseId));
-      return Buffer.from(result).toString("utf8");
-    },
+    create: (identity, payload) => submit(identity, "CreateArtifactRecord", payload),
+    read: (identity, artifactId) => evaluate(identity, "GetArtifactRecord", artifactId),
+    history: (identity, caseId) => evaluate(identity, "GetCaseHistory", caseId),
+    registerModel: (identity, payload) => submit(identity, "RegisterModel", payload),
+    getModel: (identity, name, version) => evaluate(identity, "GetModel", name, version),
     close(): void {
       closed = true;
       for (const session of opened) {

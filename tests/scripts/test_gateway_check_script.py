@@ -7,39 +7,17 @@ first, so it never runs a `dist/` older than the sources.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 from subprocess import CompletedProcess
 
 import pytest
+from gateway_run_support import BashRun, CheckScript
 
-BashRun = Callable[..., CompletedProcess[str]]
-
-FAKE_NPM = r"""
-npm() {
-  printf 'npm %s|scenario=%s\n' "$*" "${GATEWAY_SCENARIO-}" >> "$LOG"
-  case "$*" in
-    "run build") return "${BUILD_STATUS:-0}" ;;
-    "run check:gateway") return "${CHECK_STATUS:-0}" ;;
-  esac
-}
-"""
-
-FAKE_DOCKER = r"""
-docker() {
-  printf 'docker %s|scenario=%s\n' "$*" "${GATEWAY_SCENARIO-}" >> "$LOG"
-  case "$*" in
-    *" spike run build") return "${BUILD_STATUS:-0}" ;;
-    *" spike run check:gateway") return "${CHECK_STATUS:-0}" ;;
-  esac
-}
-"""
-
-HOST = "wallet_present() { return 0; }; host_can_run() { return 0; };" + FAKE_NPM
-CONTAINER = (
-    "wallet_present() { return 0; }; host_can_run() { return 1; }; "
-    "runtime_prepared() { return 0; };" + FAKE_DOCKER
-)
+SCRIPT = CheckScript("fabric/gateway-check.sh", "check:gateway")
+FAKE_NPM = SCRIPT.fake_npm
+FAKE_DOCKER = SCRIPT.fake_docker
+HOST = SCRIPT.host
+CONTAINER = SCRIPT.container
 
 
 def _run(
@@ -51,19 +29,7 @@ def _run(
     check: int = 0,
     env: dict[str, str] | None = None,
 ) -> tuple[CompletedProcess[str], list[str]]:
-    log = tmp_path / "calls.log"
-    result = bash_run(
-        ["-c", f"source fabric/gateway-check.sh; {setup}\nmain"],
-        env={
-            "LOG": log.as_posix(),
-            "BUILD_STATUS": str(build),
-            "CHECK_STATUS": str(check),
-            **(env or {}),
-        },
-        timeout=60,
-    )
-    lines = log.read_text(encoding="utf-8").splitlines() if log.exists() else []
-    return result, lines
+    return SCRIPT.run(bash_run, tmp_path, setup, build=build, check=check, env=env)
 
 
 def test_sourcing_the_script_runs_nothing(bash_run: BashRun) -> None:
