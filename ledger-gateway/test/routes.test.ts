@@ -2,8 +2,9 @@ import type { FastifyInstance } from "fastify";
 
 import { buildApp } from "../src/app";
 import { type FailureReport, isErrorEnvelope } from "../src/errors";
-import type { ArtifactLedger } from "../src/fabric-client";
+import type { LedgerSession } from "../src/fabric-client";
 import { TokenDirectory } from "../src/tokens";
+import { call, callRaw, codeOf, evaluateRefusal, submitRefusal } from "./ledger-fixtures";
 
 const TOKEN = "a".repeat(32);
 const UNKNOWN = "z".repeat(32);
@@ -25,22 +26,9 @@ function artifactBody(id: string): Record<string, unknown> {
   };
 }
 
-// The Gateway client reports a chaincode refusal in these two shapes (observed on the test
-// network): in `details[]` for a submit, in `message` for an evaluate.
-function submitRefusal(code: string, detail: string): Error {
-  return Object.assign(
-    new Error("10 ABORTED: failed to endorse transaction, see attached details for more info"),
-    { details: [{ message: `chaincode response 500, ${code}: ${detail}` }] },
-  );
-}
-
-function evaluateRefusal(code: string, detail: string): Error {
-  return new Error(
-    `2 UNKNOWN: evaluate call to endorser returned error: chaincode response 500, ${code}: ${detail}`,
-  );
-}
-
-class FakeLedger implements ArtifactLedger {
+// The artifact routes never reach history or the model registry: the three methods fail the test
+// that calls them by mistake (the routes of l08 are tested in ledger-routes.test.ts).
+class FakeLedger implements LedgerSession {
   readonly creates: string[] = [];
   readonly payloads: string[] = [];
   failure: Error | undefined;
@@ -78,45 +66,21 @@ class FakeLedger implements ArtifactLedger {
     return JSON.stringify({ docType: "artifact", artifactId, creatorAgent: "ingestion" });
   }
 
+  history(): Promise<string> {
+    return Promise.reject(new Error("history is not used by the artifact routes"));
+  }
+
+  registerModel(): Promise<string> {
+    return Promise.reject(new Error("registerModel is not used by the artifact routes"));
+  }
+
+  getModel(): Promise<string> {
+    return Promise.reject(new Error("getModel is not used by the artifact routes"));
+  }
+
   close(): void {
     return undefined;
   }
-}
-
-async function call(
-  base: string,
-  method: "GET" | "POST" | "DELETE",
-  url: string,
-  token: string | undefined,
-  payload?: Record<string, unknown>,
-): Promise<{ status: number; body: unknown }> {
-  const headers: Record<string, string> = {};
-  if (token !== undefined) {
-    headers["X-Agent-Token"] = token;
-  }
-  if (payload !== undefined) {
-    headers["content-type"] = "application/json";
-  }
-  const response = await fetch(`${base}${url}`, {
-    method,
-    headers,
-    body: payload === undefined ? undefined : JSON.stringify(payload),
-  });
-  return { status: response.status, body: (await response.json()) as unknown };
-}
-
-async function callRaw(
-  base: string,
-  url: string,
-  headers: Record<string, string>,
-  body: string,
-): Promise<{ status: number; body: unknown }> {
-  const response = await fetch(`${base}${url}`, { method: "POST", headers, body });
-  return { status: response.status, body: (await response.json()) as unknown };
-}
-
-function codeOf(body: unknown): string {
-  return isErrorEnvelope(body) ? body.error.code : "";
 }
 
 describe("artifact routes", () => {
@@ -574,7 +538,12 @@ describe("artifact routes", () => {
       ["GET", "/ledger/nope"],
       ["GET", "/health"],
       ["DELETE", "/ledger/artifacts"],
-      ["GET", "/ledger/cases/CASE-1"],
+      // /ledger/cases/{caseId} and /ledger/models are routes since l08; these are not.
+      ["GET", "/ledger/cases"],
+      ["DELETE", "/ledger/cases/CASE-00000000-0000-4000-8000-000000000001"],
+      ["GET", "/ledger/models"],
+      ["GET", "/ledger/models/ecg-cnn"],
+      ["DELETE", "/ledger/models"],
     ] as const)("%s %s", async (method, url) => {
       const response = await call(base, method, url, TOKEN);
 
