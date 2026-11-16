@@ -99,3 +99,24 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 - Strengthen and validate proper-name detection in free-text reports.
 - Verify the complete US-02 workflow, including the exact data stored by the backend.
 - Mark US-02 done only after end-to-end acceptance tests pass.
+
+
+## Role I ? T3.7 Preparation Agent (2026-11-16)
+
+### Implemented
+- Created `saam/agents/preparation.py` as a wrapper around `saam.dsp.prepare.prepare_ecg`.
+- Generated `fir_input.npy`, `fir_stage.npy`, `signal.npy` and `processing_report.json` for successfully processed ECGs.
+- Preserved NaN samples during ingestion so the preparation agent can assess signal quality.
+- Rejected infinite samples and missing input files.
+- Added per-lead quality reporting and rejection when quality is below the configured threshold.
+- Added preparation tests covering valid signals, insufficient quality, invalid shapes and units.
+
+### Validation
+- Ingestion and preparation tests: 19 passed.
+- Full test suite: previous result 139 passed, 1 skipped, 9 deselected.
+- The full suite must be rerun after the latest missing-file test.
+
+### Remaining limitations
+- Manifest registration and artifact persistence are not yet integrated.
+- Failure logging through the complete pipeline remains to be verified.
+- T3.7 must not be considered fully integrated until these points are addressed.

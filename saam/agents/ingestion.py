@@ -72,8 +72,10 @@ def validate_signal(signal: np.ndarray, leads: tuple[str, ...]) -> None:
     if not np.issubdtype(signal.dtype, np.number):
         raise ValueError("ECG signal must be numeric.")
 
-    if not np.isfinite(signal).all():
-        raise ValueError("ECG contains non-finite samples.")
+    # NaN samples are preserved for the preparation agent's quality
+    # assessment. Infinite values remain invalid at ingestion.
+    if np.isinf(signal).any():
+        raise ValueError("ECG contains infinite samples.")
 
 
 def read_wfdb(header_path: Path, case_id: str):

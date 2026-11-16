@@ -160,20 +160,34 @@ def test_csv_with_wrong_number_of_leads_is_rejected(tmp_path):
         ingest_ecg(csv_path, CASE_ID, csv_sampling_rate=500)
 
 
-def test_csv_with_non_finite_values_is_rejected(tmp_path):
+def test_csv_with_nan_values_is_preserved_for_preparation(tmp_path):
     data = np.ones((10, 12))
     data[0, 0] = np.nan
 
-    csv_path = tmp_path / "invalid.csv"
-    pd.DataFrame(
-        data,
-        columns=[
-            "I", "II", "III", "AVR", "AVL", "AVF",
-            "V1", "V2", "V3", "V4", "V5", "V6",
-        ],
-    ).to_csv(csv_path, index=False)
+    csv_path = tmp_path / "nan_signal.csv"
+    pd.DataFrame(data, columns=[
+        "I", "II", "III", "AVR", "AVL", "AVF",
+        "V1", "V2", "V3", "V4", "V5", "V6",
+    ]).to_csv(csv_path, index=False)
 
-    with pytest.raises(ValueError, match="non-finite"):
+    result = ingest_ecg(csv_path, CASE_ID, csv_sampling_rate=500)
+
+    assert result.signal.shape == (10, 12)
+    assert np.isnan(result.signal[0, 0])
+    assert result.signal[1, 0] == 1.0
+
+
+def test_csv_with_infinite_values_is_rejected(tmp_path):
+    data = np.ones((10, 12))
+    data[0, 0] = np.inf
+
+    csv_path = tmp_path / "infinite_signal.csv"
+    pd.DataFrame(data, columns=[
+        "I", "II", "III", "AVR", "AVL", "AVF",
+        "V1", "V2", "V3", "V4", "V5", "V6",
+    ]).to_csv(csv_path, index=False)
+
+    with pytest.raises(ValueError, match="infinite"):
         ingest_ecg(csv_path, CASE_ID, csv_sampling_rate=500)
 
 
@@ -279,3 +293,13 @@ def test_same_patient_submissions_receive_distinct_backend_case_ids(tmp_path):
         for filename, content in result.files.items():
             assert "same_patient_source" not in str(filename)
             assert b"same_patient_source" not in content
+
+def test_missing_csv_file_is_rejected(tmp_path):
+    missing_file = tmp_path / "missing_ecg.csv"
+
+    with pytest.raises(FileNotFoundError):
+        ingest_ecg(
+            missing_file,
+            CASE_ID,
+            csv_sampling_rate=500,
+        )
