@@ -1,0 +1,125 @@
+Running the local suite (fabric and board excluded).
+........................................................................ [ 17%]
+........................................................................ [ 35%]
+........................................................................ [ 52%]
+........................................................................ [ 70%]
+.............................................................s.......... [ 88%]
+................................................                         [100%]
+407 passed, 1 skipped, 24 deselected in 43.46s
+chaincode/provenance: node is not on PATH; running npm test in node:20.20.2-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5.
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 328 packages in 6s
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+
+> provenance@0.1.0 test
+> node node_modules/typescript/bin/tsc --noEmit && node -e "require('fs').rmSync('dist-test',{recursive:true,force:true})" && node node_modules/typescript/bin/tsc -p tsconfig.test.json && node node_modules/jest/bin/jest.js --runInBand
+
+PASS dist-test/test/provenance.test.js
+  ● Console
+
+    console.log
+      2026-11-16T18:00:59.577Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> CreateArtifactRecord, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.589Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetArtifactRecord, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.590Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetCaseHistory, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.591Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> RegisterModel, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.592Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetModel, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.593Z [32minfo[39m [c-api:./lib/annotations/info.js]                   @Info args: "Info -> [object Object],","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+PASS dist-test/test/model-registry.test.js
+  ● Console
+
+    console.log
+      2026-11-16T18:00:59.771Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> CreateArtifactRecord, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.775Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetArtifactRecord, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.775Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetCaseHistory, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.776Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> RegisterModel, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.777Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetModel, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T18:00:59.777Z [32minfo[39m [c-api:./lib/annotations/info.js]                   @Info args: "Info -> [object Object],","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+
+Test Suites: 2 passed, 2 total
+Tests:       183 passed, 183 total
+Snapshots:   0 total
+Time:        0.712 s
+Ran all test suites.
+ledger-gateway: node is not on PATH; running npm test in node:20.20.2-bookworm@sha256:8f693eaa7e0a8e71560c9a82b55fd54c2ae920a2ba5d2cde28bac7d1c01c9ba5.
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'cookie@2.0.2',
+npm warn EBADENGINE   required: { node: '>=22' },
+npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 337 packages in 6s
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+
+> ledger-gateway@0.1.0 test
+> node node_modules/typescript/bin/tsc --noEmit && node -e "require('fs').rmSync('dist-test',{recursive:true,force:true})" && node node_modules/typescript/bin/tsc -p tsconfig.test.json && node node_modules/jest/bin/jest.js --runInBand
+
+PASS dist-test/test/ledger-routes.test.js
+PASS dist-test/test/routes.test.js
+PASS dist-test/test/fabric-client.test.js
+PASS dist-test/test/tokens.test.js
+PASS dist-test/test/ledger-session.test.js
+
+Test Suites: 5 passed, 5 total
+Tests:       212 passed, 212 total
+Snapshots:   0 total
+Time:        4.295 s
+Ran all test suites.
+exit=0

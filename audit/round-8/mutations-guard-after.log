@@ -1,0 +1,7 @@
+M01  killed    docType not checked  [1 failed, 50 passed, 11 deselected in 0.84s]
+M10  killed    era end  [1 failed, 169 passed, 11 deselected in 0.92s]
+M14  killed    key not read for patterns  [1 failed, 51 passed, 11 deselected in 0.87s]
+M25  killed    dob words  [1 failed, 103 passed, 11 deselected in 0.94s]
+M28  killed    name Mme Martin  [1 failed, 115 passed, 11 deselected in 0.90s]
+G07  killed    no rstrip  [1 failed, 199 passed, 11 deselected in 1.01s]
+survivors: none
