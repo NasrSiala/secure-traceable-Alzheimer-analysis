@@ -74,6 +74,14 @@ export function requireUuid(value: unknown, field: string): string {
   return text;
 }
 
+export function requireCaseId(value: unknown): string {
+  const text = requireString(value, "caseId");
+  if (!CASE_ID.test(text)) {
+    fail("SCHEMA", "caseId must match CASE- and 36 lowercase hex or hyphen characters");
+  }
+  return text;
+}
+
 function boundedString(value: unknown, field: string): string {
   const text = requireString(value, field);
   if (text.length < 1 || text.length > 64) {
@@ -126,10 +134,7 @@ export function parseClientArtifact(json: string): Omit<
   }
 
   const artifactId = requireUuid(parsed.artifactId, "artifactId");
-  const caseId = requireString(parsed.caseId, "caseId");
-  if (!CASE_ID.test(caseId)) {
-    fail("SCHEMA", "caseId must match CASE- and 36 lowercase hex or hyphen characters");
-  }
+  const caseId = requireCaseId(parsed.caseId);
   const artifactType = requireString(parsed.artifactType, "artifactType");
   if (!ARTIFACT_TYPE_SET.has(artifactType)) {
     fail("SCHEMA", "artifactType is not in the artifact_type list");

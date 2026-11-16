@@ -27,7 +27,7 @@ const CHAINCODE_STATUS: Readonly<Record<string, number>> = {
 const CHAINCODE_CODE =
   /chaincode response \d+, (PARENT_MISSING|DUPLICATE|FORBIDDEN|NOT_FOUND|SCHEMA):\s*([^\n]+)/;
 
-const CAUSE_LIMIT = 240;
+const CAUSE_LIMIT = 400;
 
 export function errorBody(code: string, message: string): ErrorEnvelope {
   return { error: { code, message, details: {} } };
@@ -54,20 +54,29 @@ export function isErrorEnvelope(value: unknown): value is ErrorEnvelope {
   );
 }
 
+// A submit that fails at endorsement reports the chaincode's refusal only in `details[]`
+// (`message` just says "see attached details"); an evaluate puts it in `message`.
+function detailMessages(error: Error): string[] {
+  const details = (error as { details?: { message?: unknown }[] }).details;
+  if (!Array.isArray(details)) {
+    return [];
+  }
+  return details.flatMap((item) =>
+    typeof item?.message === "string" && item.message !== "" ? [item.message] : [],
+  );
+}
+
 function collectedText(error: unknown): string {
   if (!(error instanceof Error)) {
     return "";
   }
-  const details = (error as { details?: { message?: string }[] }).details;
-  const extra = Array.isArray(details)
-    ? details.map((item) => item.message ?? "").join("\n")
-    : "";
-  return `${error.message}\n${extra}`;
+  return [error.message, ...detailMessages(error)].join("\n");
 }
 
 /**
- * One line, no request body and no header: the error class, its gRPC or commit code and the
- * first line of its message (the Gateway client puts addresses and status names there).
+ * One line, no request body and no header: the error class, its gRPC or commit code, the first
+ * line of its message and the first line of each endorsement detail (the Gateway client puts
+ * addresses, status names and the chaincode's refusal there).
  */
 export function describeCause(error: unknown): string {
   if (!(error instanceof Error)) {
@@ -75,8 +84,8 @@ export function describeCause(error: unknown): string {
   }
   const code = (error as { code?: unknown }).code;
   const label = typeof code === "number" || typeof code === "string" ? ` code=${String(code)}` : "";
-  const firstLine = error.message.split("\n")[0] ?? "";
-  return `${error.name}${label}: ${firstLine}`.slice(0, CAUSE_LIMIT);
+  const lines = [error.message, ...detailMessages(error)].map((text) => text.split("\n")[0] ?? "");
+  return `${error.name}${label}: ${[...new Set(lines)].join(" | ")}`.slice(0, CAUSE_LIMIT);
 }
 
 export function chaincodeFailure(error: unknown): { status: number; body: ErrorEnvelope } {

@@ -16,6 +16,10 @@ export interface ArtifactLedger {
   close(): void;
 }
 
+export interface LedgerSession extends ArtifactLedger {
+  history(identity: string, caseId: string): Promise<string>;
+}
+
 export interface LedgerSettings {
   walletDir: string;
   peerEndpoint: string;
@@ -92,7 +96,7 @@ export async function assertEnrolled(
 
 export async function connectLedger(
   settings: LedgerSettings = ledgerSettingsFromEnvironment(),
-): Promise<ArtifactLedger> {
+): Promise<LedgerSession> {
   const { walletDir, peerEndpoint, peerTlsCert, channelName, chaincodeName } = settings;
   const tlsRoot = await fs.readFile(peerTlsCert);
   // The map holds the pending creation, not the finished session: requests that arrive while
@@ -157,6 +161,12 @@ export async function connectLedger(
       const result = await withDeadline(
         contract.evaluateTransaction("GetArtifactRecord", artifactId),
       );
+      return Buffer.from(result).toString("utf8");
+    },
+    async history(identity: string, caseId: string): Promise<string> {
+      const { gateway } = await sessionFor(identity);
+      const contract = gateway.getNetwork(channelName).getContract(chaincodeName, "Provenance");
+      const result = await withDeadline(contract.evaluateTransaction("GetCaseHistory", caseId));
       return Buffer.from(result).toString("utf8");
     },
     close(): void {

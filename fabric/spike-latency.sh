@@ -12,18 +12,10 @@ export MSYS2_ARG_CONV_EXCL='*'
 
 FABRIC_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-unavailable() {
-  echo "error: environment unavailable: $*" >&2
-  exit 1
-}
-
-# Probes, kept as functions so that tests/scripts/test_spike_latency_script.py can replace them.
-wallet_present() { [[ -f "${FABRIC_DIR}/wallet/peer0-org1-tls-ca.crt" ]]; }
-runtime_prepared() { [[ -f "${FABRIC_DIR}/.runtime/ca.env" ]]; }
-host_can_run() {
-  command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1 \
-    && [[ -d "${FABRIC_DIR}/../ledger-gateway/node_modules/typescript" ]]
-}
+# unavailable, and the probes wallet_present, runtime_prepared and host_can_run, which
+# tests/scripts/test_spike_latency_script.py replaces.
+# shellcheck source=lib/gateway-run.sh
+source "${FABRIC_DIR}/lib/gateway-run.sh"
 
 # The container run mounts only ledger-gateway, so the two repository settings the report
 # carries are read here and handed over. The probe reads the same files when started alone.

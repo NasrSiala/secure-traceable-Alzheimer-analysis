@@ -12,6 +12,7 @@ from pathlib import Path
 from subprocess import CompletedProcess
 
 import pytest
+from fabric_support import redacted
 
 ROOT = Path(__file__).resolve().parents[2]
 BUDGET_SECONDS = 7.3
@@ -97,22 +98,6 @@ def _json_object(text: str) -> dict[str, object]:
     raise AssertionError("response did not contain a JSON object")
 
 
-def _redacted(text: str) -> str:
-    kept: list[str] = []
-    for line in text.splitlines():
-        lowered = line.lower()
-        if (
-            "password" in lowered
-            or "private key" in lowered
-            or "begin " in lowered
-            or "://" in lowered
-        ):
-            kept.append("[redacted]")
-        else:
-            kept.append(line)
-    return "\n".join(kept[-40:])
-
-
 def test_latency_sources_require_seven_transactions_and_the_budget_fields() -> None:
     gateway = json.loads(
         (ROOT / "ledger-gateway" / "package.json").read_text(encoding="utf-8")
@@ -131,7 +116,10 @@ def test_latency_sources_require_seven_transactions_and_the_budget_fields() -> N
     assert '"set-to-0.5s"' in source
     assert "Run again before changing BatchTimeout" in source
     script = (ROOT / "fabric" / "spike-latency.sh").read_text(encoding="utf-8")
-    assert "environment unavailable" in script
+    # The refusal message lives in the helper that gateway-check.sh and history-check.sh share.
+    shared = (ROOT / "fabric" / "lib" / "gateway-run.sh").read_text(encoding="utf-8")
+    assert "lib/gateway-run.sh" in script
+    assert "environment unavailable" in shared
     assert "BatchTimeout" in script
 
 
@@ -272,12 +260,6 @@ def _docker_ready() -> tuple[bool, str]:
     return True, ""
 
 
-@pytest.fixture
-def _stop_after_test(bash_run: Callable[..., CompletedProcess[str]]) -> object:
-    yield
-    bash_run(["fabric/network.sh", "stop"], timeout=180)
-
-
 @pytest.mark.fabric
 def test_seven_commits_report_percentiles_and_enforce_the_budget(
     bash_run: Callable[..., CompletedProcess[str]],
@@ -290,12 +272,12 @@ def test_seven_commits_report_percentiles_and_enforce_the_budget(
     started = bash_run(["fabric/network.sh", "start"], timeout=420)
     assert started.returncode == 0, (
         "environment unavailable: network start failed\n"
-        f"{_redacted(started.stdout)}\n{_redacted(started.stderr)}"
+        f"{redacted(started.stdout)}\n{redacted(started.stderr)}"
     )
     enrolled = bash_run(["fabric/enroll-identities.sh"], timeout=900)
     assert enrolled.returncode == 0, (
         "environment unavailable: enrollment failed\n"
-        f"{_redacted(enrolled.stdout)}\n{_redacted(enrolled.stderr)}"
+        f"{redacted(enrolled.stdout)}\n{redacted(enrolled.stderr)}"
     )
 
     runs: list[CompletedProcess[str]] = []
@@ -314,7 +296,7 @@ def test_seven_commits_report_percentiles_and_enforce_the_budget(
     if outcome == "environment-unavailable":
         raise AssertionError(
             "environment unavailable: latency run did not validate seven transactions\n"
-            f"exit {measured.returncode}\n{_redacted(measured.stdout)}\n{_redacted(measured.stderr)}"
+            f"exit {measured.returncode}\n{redacted(measured.stdout)}\n{redacted(measured.stderr)}"
         )
     assert report is not None
     for statistic in ("p50", "p95", "maximum"):
@@ -397,7 +379,7 @@ def _assert_a_second_run_is_not_a_duplicate(
         classify_latency_result(again.returncode, report) != "environment-unavailable"
     ), (
         f"a second run on the same network failed\nexit {again.returncode}\n"
-        f"{_redacted(again.stdout)}\n{_redacted(again.stderr)}"
+        f"{redacted(again.stdout)}\n{redacted(again.stderr)}"
     )
 
 
@@ -421,7 +403,7 @@ def _assert_probe_runs_on_its_own(
     report = _json_object(alone.stdout)
     assert (
         classify_latency_result(alone.returncode, report) != "environment-unavailable"
-    ), f"exit {alone.returncode}\n{_redacted(alone.stdout)}\n{_redacted(alone.stderr)}"
+    ), f"exit {alone.returncode}\n{redacted(alone.stdout)}\n{redacted(alone.stderr)}"
     assert report["batchTimeout"] == configured_batch_timeout()
     assert "Org1MSP.peer" in str(report["endorsementPolicy"])
     assert "Org2MSP.peer" in str(report["endorsementPolicy"])

@@ -11,6 +11,7 @@ from pathlib import Path
 from subprocess import CompletedProcess
 
 import pytest
+from fabric_support import assert_ok
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -25,29 +26,6 @@ EXPECTED = {
     "model-admin": ("Org1MSP", "model-admin", None),
     "verifier": ("Org2MSP", None, None),
 }
-
-
-def _redacted(text: str) -> str:
-    kept: list[str] = []
-    for line in text.splitlines():
-        lowered = line.lower()
-        if (
-            "password" in lowered
-            or "private key" in lowered
-            or "begin " in lowered
-            or "://" in lowered
-        ):
-            kept.append("[redacted]")
-        else:
-            kept.append(line)
-    return "\n".join(kept[-40:])
-
-
-def _assert_ok(result: CompletedProcess[str], step: str) -> None:
-    assert result.returncode == 0, (
-        f"{step} failed with exit {result.returncode}\n"
-        f"{_redacted(result.stdout)}\n{_redacted(result.stderr)}"
-    )
 
 
 def _json_object(text: str) -> dict[str, object]:
@@ -109,12 +87,6 @@ def _spike(
     )
 
 
-@pytest.fixture
-def _stop_after_test(bash_run: Callable[..., CompletedProcess[str]]) -> object:
-    yield
-    bash_run(["fabric/network.sh", "stop"], timeout=180)
-
-
 def test_sources_name_nine_identities_and_refuse_writes_without_the_agent_role() -> (
     None
 ):
@@ -143,9 +115,9 @@ def test_enrolled_identities_authorize_agent_writes_and_refuse_verifier(
     _stop_after_test: object,
 ) -> None:
     started = bash_run(["fabric/network.sh", "start"], timeout=420)
-    _assert_ok(started, "start")
+    assert_ok(started, "start")
     enrolled = bash_run(["fabric/enroll-identities.sh"], timeout=900)
-    _assert_ok(enrolled, "enroll")
+    assert_ok(enrolled, "enroll")
 
     for name, (msp_id, role, agent) in EXPECTED.items():
         home = repo_root / "fabric" / "wallet" / name
@@ -187,7 +159,7 @@ def test_enrolled_identities_authorize_agent_writes_and_refuse_verifier(
     assert ignored.returncode == 0
 
     accepted = _spike(bash_run, "agent-ingestion", "write", "ingestion-probe")
-    _assert_ok(accepted, "agent-ingestion create")
+    assert_ok(accepted, "agent-ingestion create")
     record = _json_object(accepted.stdout)
     assert record["docType"] == "artifact"
     assert record["artifactType"] == "original"
@@ -204,7 +176,7 @@ def test_enrolled_identities_authorize_agent_writes_and_refuse_verifier(
     assert "FORBIDDEN" in refused.stdout + refused.stderr
 
     visible = _spike(bash_run, "verifier", "read", "ingestion-probe")
-    _assert_ok(visible, "verifier read")
+    assert_ok(visible, "verifier read")
     read_back = _json_object(visible.stdout)
     assert read_back["artifactId"] == record["artifactId"]
     assert read_back["sha256"] == record["sha256"]
@@ -214,12 +186,12 @@ def test_enrolled_identities_authorize_agent_writes_and_refuse_verifier(
     # live network. Fresh keys are enrolled, the committed definition is checked
     # instead of committed twice, and the same agent can still write.
     repeated = bash_run(["fabric/enroll-identities.sh"], timeout=900)
-    _assert_ok(repeated, "second enrollment")
+    assert_ok(repeated, "second enrollment")
     assert "already committed" in repeated.stdout + repeated.stderr
     for name, (_msp_id, role, agent) in EXPECTED.items():
         attributes = _attributes(repo_root / "fabric" / "wallet" / name / "cert.pem")
         assert attributes.get("role") == role
         assert attributes.get("agent") == agent
     again = _spike(bash_run, "agent-ingestion", "write", "ingestion-probe-again")
-    _assert_ok(again, "agent-ingestion create after the second enrollment")
+    assert_ok(again, "agent-ingestion create after the second enrollment")
     assert _json_object(again.stdout)["creatorAgent"] == "ingestion"

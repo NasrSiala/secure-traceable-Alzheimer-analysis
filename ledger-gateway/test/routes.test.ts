@@ -260,6 +260,24 @@ describe("artifact routes", () => {
     expect(JSON.stringify(response.body)).not.toContain("127.0.0.1");
   });
 
+  test.each([
+    ["creatorMspId", "Org9MSP"],
+    ["creatorId", "x509::/CN=someone-else"],
+    ["creatorAgent", "validation"],
+    ["txTimestamp", "2026-11-09T18:00:00.000Z"],
+    ["docType", "artifact"],
+  ])("never takes %s from the client (NFR-06)", async (field, value) => {
+    const response = await call(base, "POST", "/ledger/artifacts", TOKEN, {
+      ...artifactBody(ARTIFACT_ID),
+      [field]: value,
+    });
+
+    expect(response.status).toBe(400);
+    expect(codeOf(response.body)).toBe("SCHEMA");
+    expect(JSON.stringify(response.body)).not.toContain(value);
+    expect(ledger.creates).toEqual([]);
+  });
+
   test("rejects an unknown field before calling the ledger", async () => {
     const response = await call(base, "POST", "/ledger/artifacts", TOKEN, {
       ...artifactBody(ARTIFACT_ID),
@@ -479,6 +497,46 @@ describe("artifact routes", () => {
       await call(base, "GET", `/ledger/artifacts/${ARTIFACT_ID}`, TOKEN);
 
       expect(failures[0]?.cause).toBe("Error: first line");
+    });
+
+    test("a failed submit reports the chaincode's refusal from its details", async () => {
+      ledger.failure = submitRefusal("INTEGRITY", "a stored record is not valid JSON");
+      const response = await call(base, "POST", "/ledger/artifacts", TOKEN, artifactBody(ARTIFACT_ID));
+
+      expect(response.status).toBe(502);
+      expect(codeOf(response.body)).toBe("UNAVAILABLE");
+      expect(JSON.stringify(response.body)).not.toContain("INTEGRITY");
+      expect(failures).toHaveLength(1);
+      expect(failures[0]?.cause).toContain("failed to endorse transaction");
+      expect(failures[0]?.cause).toContain(
+        "chaincode response 500, INTEGRITY: a stored record is not valid JSON",
+      );
+    });
+
+    test("a failed evaluate reports the chaincode's refusal from its message", async () => {
+      ledger.failure = evaluateRefusal("INTEGRITY", "an indexed artifact is not on the ledger");
+      const response = await call(base, "GET", `/ledger/artifacts/${ARTIFACT_ID}`, TOKEN);
+
+      expect(response.status).toBe(502);
+      expect(codeOf(response.body)).toBe("UNAVAILABLE");
+      expect(failures[0]?.cause).toContain("INTEGRITY: an indexed artifact is not on the ledger");
+    });
+
+    test("names each distinct endorsement detail once", async () => {
+      ledger.failure = Object.assign(new Error("10 ABORTED: failed to endorse transaction"), {
+        details: [
+          { message: "chaincode response 500, INTEGRITY: one\nstack line" },
+          { message: "chaincode response 500, INTEGRITY: one\nstack line" },
+          { message: "peer unreachable" },
+          { message: "" },
+        ],
+      });
+      await call(base, "POST", "/ledger/artifacts", TOKEN, artifactBody(ARTIFACT_ID));
+
+      expect(failures[0]?.cause).toBe(
+        "Error: 10 ABORTED: failed to endorse transaction | " +
+          "chaincode response 500, INTEGRITY: one | peer unreachable",
+      );
     });
 
     test("does not report answers the caller caused", async () => {

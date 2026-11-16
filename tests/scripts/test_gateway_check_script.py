@@ -106,6 +106,16 @@ def test_a_failed_check_fails_the_script(
     assert len(calls) == 2
 
 
+def test_the_container_is_handed_the_scenario_variable(
+    bash_run: BashRun, tmp_path: Path
+) -> None:
+    """A variable only reaches the container when `-e NAME` names it on the docker command."""
+    result, calls = _run(bash_run, tmp_path, CONTAINER)
+    assert result.returncode == 0, result.stderr
+    assert " -e GATEWAY_SCENARIO " in calls[1]
+    assert " -e GATEWAY_SCENARIO " in calls[0]
+
+
 @pytest.mark.parametrize("setup", [HOST, CONTAINER], ids=["host", "container"])
 def test_the_scenario_reaches_the_check(
     bash_run: BashRun, tmp_path: Path, setup: str
