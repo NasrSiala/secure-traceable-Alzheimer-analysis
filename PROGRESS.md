@@ -66,27 +66,36 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 | Date | Idée / besoin | Où | Proposé pour |
 |---|---|---|---|
 
-## Role I — T3.6 Ingestion Agent (2026-11-15)
+## Role I — T3.6 Ingestion Agent (2026-11-16)
 
 ### Implemented
-- Created `saam/agents/ingestion.py`.
-- Added WFDB and 12-lead CSV ingestion.
-- Added ECG validation: dimensions, lead order, numeric values and finite samples.
+- Created `saam/agents/ingestion.py` with WFDB and 12-lead CSV ingestion.
+- Added ECG validation: dimensions, lead order, numeric values, finite samples and units.
 - Removed WFDB header comments and replaced original record/data filenames.
 - Restricted sanitized CSV output to the 12 expected ECG leads.
-- Added report sanitization for labeled patient names, identifiers and dates.
+- Added report redaction for labeled patient names, identifiers, dates and supported name patterns.
+- Added `saam/agents/redaction.py` and integrated report sanitization into ingestion.
 - Sanitized artifacts are returned in memory; persistent storage and encryption remain backend responsibilities.
 - Backend-generated `CASE-UUID` is accepted and validated; the ingestion agent does not generate another case ID.
 
+### Privacy acceptance criteria
+| Criterion | Current evidence | Status |
+|---|---|---|
+| AC-02.1 | WFDB metadata/header sanitization and CSV field restriction tested. Backend case-ID assignment is not implemented by this agent. | Partially verified |
+| AC-02.2 | Test confirms two submissions can receive distinct backend-provided case IDs. Database-level absence of patient linkage is not verified. | Partially verified |
+| AC-02.3 | Report redaction tests cover supported identity patterns and known names. Generic proper-name detection is not guaranteed. | Partially verified |
+
 ### Tests
-- Created `tests/agents/test_ingestion.py`.
-- Dedicated tests: 10 passed.
-- Full test suite: 122 passed, 1 skipped, 9 deselected.
-- 8 warnings reported; no test failures.
-- Full suite duration: 54.88 seconds.
+- `tests/agents/test_ingestion.py` and `tests/agents/test_redaction.py` cover ingestion and privacy behavior.
+- Agent tests: 21 passed.
+- Full test suite: 133 passed, 1 skipped, 9 deselected.
+- 11 warnings reported; no test failures.
+- Full suite duration: 54.51 seconds.
+- `git diff --check`: no whitespace errors; Git reports only an LF/CRLF conversion warning.
 
 ### Remaining work
-- Strengthen detection of proper names in free-text reports (AC-02.3).
-- Add broader privacy tests, including metadata leakage checks.
-- Integrate the agent with the backend worker after T3.5 is available.
-- Verify the complete US-02 workflow, including backend case-ID assignment and distinct IDs for separate submissions.
+- Integrate the ingestion agent with the backend worker after T3.5 is available.
+- Verify backend-generated case IDs and database-level absence of patient linkage.
+- Strengthen and validate proper-name detection in free-text reports.
+- Verify the complete US-02 workflow, including the exact data stored by the backend.
+- Mark US-02 done only after end-to-end acceptance tests pass.

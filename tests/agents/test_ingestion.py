@@ -230,3 +230,52 @@ def test_wfdb_header_does_not_leak_personal_metadata(tmp_path):
     assert "1980-04-12" not in generated_header
     assert "PRIVATE-123" not in generated_header
     assert "private_record" not in generated_header
+
+
+def test_same_patient_submissions_receive_distinct_backend_case_ids(tmp_path):
+    leads = [
+        "I", "II", "III", "AVR", "AVL", "AVF",
+        "V1", "V2", "V3", "V4", "V5", "V6",
+    ]
+
+    source_path = tmp_path / "same_patient_source.csv"
+    pd.DataFrame(
+        np.ones((100, 12)),
+        columns=leads,
+    ).to_csv(source_path, index=False)
+
+    first_case_id = "CASE-11111111-1111-1111-1111-111111111111"
+    second_case_id = "CASE-22222222-2222-2222-2222-222222222222"
+
+    first = ingest_ecg(
+        source_path,
+        first_case_id,
+        csv_sampling_rate=500,
+        report_text="Patient ID: SAME-PATIENT-001",
+    )
+
+    second = ingest_ecg(
+        source_path,
+        second_case_id,
+        csv_sampling_rate=500,
+        report_text="Patient ID: SAME-PATIENT-001",
+    )
+
+    # The backend supplies two different case identifiers.
+    assert first.case_id == first_case_id
+    assert second.case_id == second_case_id
+    assert first.case_id != second.case_id
+
+    # No original patient identifier remains in the reports.
+    assert "SAME-PATIENT-001" not in first.report_text
+    assert "SAME-PATIENT-001" not in second.report_text
+
+    # The ingestion results expose no patient-linkage field.
+    assert not hasattr(first, "patient_id")
+    assert not hasattr(second, "patient_id")
+
+    # The original source filename is not propagated in artifacts.
+    for result in (first, second):
+        for filename, content in result.files.items():
+            assert "same_patient_source" not in str(filename)
+            assert b"same_patient_source" not in content
