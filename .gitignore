@@ -48,6 +48,7 @@ ml/checkpoints/
 node_modules/
 frontend/dist/
 ledger-gateway/dist/
+ledger-gateway/dist-test/
 chaincode/provenance/dist/
 chaincode/provenance/dist-test/
 playwright-report/

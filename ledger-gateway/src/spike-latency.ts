@@ -7,18 +7,19 @@ import * as grpc from "@grpc/grpc-js";
 import { connect, hash, signers, StatusCode } from "@hyperledger/fabric-gateway";
 
 import { probeArtifact } from "./probe-artifact";
+import { envSetting } from "./settings";
 
 const TRANSACTION_COUNT = 7;
 const BUDGET_SECONDS = 7.3;
 const IDENTITY = "agent-ingestion";
 const CONTRACT = "Provenance";
 
-const walletDir = process.env.WALLET_DIR ?? path.resolve(__dirname, "../../fabric/wallet");
+const walletDir = envSetting("WALLET_DIR", path.resolve(__dirname, "../../fabric/wallet"));
 const fabricDir = path.resolve(__dirname, "../../fabric");
-const peerEndpoint = process.env.PEER_ENDPOINT ?? "localhost:18051";
-const peerTlsCert = process.env.PEER_TLS_CERT ?? path.join(walletDir, "peer0-org1-tls-ca.crt");
-const channelName = process.env.CHANNEL_NAME ?? "medtrace";
-const chaincodeName = process.env.CHAINCODE_NAME ?? "provenance";
+const peerEndpoint = envSetting("PEER_ENDPOINT", "localhost:18051");
+const peerTlsCert = envSetting("PEER_TLS_CERT", path.join(walletDir, "peer0-org1-tls-ca.crt"));
+const channelName = envSetting("CHANNEL_NAME", "medtrace");
+const chaincodeName = envSetting("CHAINCODE_NAME", "provenance");
 
 interface LatencyReport {
   transactionCount: number;
