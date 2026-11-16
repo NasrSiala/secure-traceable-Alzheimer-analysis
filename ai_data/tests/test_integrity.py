@@ -1,44 +1,55 @@
-﻿import unittest
+"""Tests for PTB-XL checksum manifest validation."""
+
+from pathlib import Path
+
+import pytest
 
 from ai_data.ptbxl.integrity import PTBXLIntegrityChecker
+from saam.hashing import file_hash
 
 
-DATASET_ROOT = (
-    r"C:\Users\ayedi\Datasets\PTB-XL"
-    r"\ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3"
+def _checker(tmp_path: Path, manifest: str) -> PTBXLIntegrityChecker:
+    (tmp_path / "SHA256SUMS.txt").write_text(manifest, encoding="utf-8")
+    return PTBXLIntegrityChecker(tmp_path)
+
+
+def test_verifies_file_and_rejects_paths_outside_dataset(tmp_path: Path) -> None:
+    payload = tmp_path / "record.dat"
+    payload.write_bytes(b"public ECG payload")
+    checker = _checker(tmp_path, f"{file_hash(payload.read_bytes())}  record.dat\n")
+
+    assert checker.verify_file("record.dat")["valid"] is True
+    with pytest.raises(ValueError, match="inside"):
+        checker.verify_file("../record.dat")
+    with pytest.raises(ValueError, match="inside"):
+        checker.verify_file(payload)
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    [
+        "not-a-checksum-entry\n",
+        f"{'z' * 64}  record.dat\n",
+        f"{'a' * 64}  record.dat\n{'b' * 64}  record.dat\n",
+    ],
 )
+def test_rejects_malformed_or_ambiguous_manifest(
+    tmp_path: Path, manifest: str
+) -> None:
+    with pytest.raises(ValueError):
+        _checker(tmp_path, manifest)
 
 
-class TestPTBXLIntegrity(unittest.TestCase):
+def test_rejects_symlink_escape(tmp_path: Path) -> None:
+    outside = tmp_path.parent / "outside-record.dat"
+    outside.write_bytes(b"outside")
+    payload_hash = file_hash(outside.read_bytes())
+    checker = _checker(tmp_path, f"{payload_hash}  linked.dat\n")
+    link = tmp_path / "linked.dat"
+    try:
+        link.symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("Symlink creation is unavailable on this platform.")
 
-    @classmethod
-    def setUpClass(cls):
-        cls.checker = PTBXLIntegrityChecker(DATASET_ROOT)
-
-    def test_metadata_integrity(self):
-        result = self.checker.verify_file("ptbxl_database.csv")
-        self.assertTrue(result["valid"])
-
-    def test_ecg_header_integrity(self):
-        result = self.checker.verify_file(
-            "records500/00000/00001_hr.hea"
-        )
-        self.assertTrue(result["valid"])
-
-    def test_ecg_signal_integrity(self):
-        result = self.checker.verify_file(
-            "records500/00000/00001_hr.dat"
-        )
-        self.assertTrue(result["valid"])
-
-    def test_unknown_file_is_rejected(self):
-        with self.assertRaises(KeyError):
-            self.checker.verify_file("unknown_file.dat")
-
-    def test_path_traversal_is_rejected(self):
-        with self.assertRaises(ValueError):
-            self.checker.verify_file("../outside.txt")
-
-
-if __name__ == "__main__":
-    unittest.main()
+    with pytest.raises(ValueError, match="inside"):
+        checker.verify_file("linked.dat")

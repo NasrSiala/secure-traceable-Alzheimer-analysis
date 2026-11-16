@@ -1,12 +1,15 @@
-﻿import hashlib
-import json
+﻿import json
+import sys
 from pathlib import Path
 
 import numpy as np
 from scipy.signal import freqz, remez
 
-
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from saam.hashing import artifact_hash
 
 FS = 500
 NUM_TAPS = 111
@@ -72,16 +75,6 @@ def measure_response(coefficients):
     }
 
 
-def canonical_json(data):
-    """Return deterministic JSON bytes for coefficient identification."""
-    return json.dumps(
-        data,
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    ).encode("utf-8")
-
-
 def generate_json(quantized):
     payload = {
         "sample_rate_hz": FS,
@@ -91,7 +84,7 @@ def generate_json(quantized):
         "coefficients_q15": [int(value) for value in quantized],
     }
 
-    coef_id = hashlib.sha256(canonical_json(payload)).hexdigest()[:8]
+    coef_id = artifact_hash(payload)[:8]
     payload["fir_coef_id"] = coef_id
 
     output = ROOT / "saam" / "dsp" / "fir_coeffs.json"

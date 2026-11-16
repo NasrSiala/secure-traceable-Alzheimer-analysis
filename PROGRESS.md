@@ -16,8 +16,8 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 
 | Tache | Avancement | Verification / reserve |
 |---|---|---|
-| T2.10 - FIR fixe | Generation de 111 coefficients Q1.15, filtre multi-lead bit-exact et 13 tests | Regeneration deterministe verifiee. Attenuation quantifiee : 52.4227 dB, sous la cible NFR-21 de 60 dB. SNR global mesure : 55.825 dB sur cinq ECG. Identifiant provisoire `b6d7a73a`, en attente de `saam.hashing`. |
-| T2.11 - Vecteurs PTB-XL | Cinq enregistrements `records500` du fold 10 prepares dans `hw/vectors/ptbxl/records500/00000/` | Fichiers `.dat` et `.hea`, checksums et chargement WFDB verifies. Attribution CC BY 4.0 presente. Verification officielle `ml/data.py --check-hw-vectors` non executee : script absent localement. |
+| T2.10 - FIR fixe | Generation de 111 coefficients Q1.15, filtre multi-lead bit-exact et tests | AC-16.1 passe : ondulation quantifiee 0.3793 dB et attenuation 52.4227 dB (seuil 40 dB). NFR-21 distinct : RSB mesure 55.8255 dB global sur cinq ECG, sous 60 dB ; aucune modification du contrat ou des coefficients sans autorisation. `fir_coef_id=b6d7a73a` est maintenant calcule par `saam.hashing.artifact_hash`. |
+| T2.11 - Vecteurs PTB-XL | Cinq enregistrements `records500` du fold 10 prepares dans `hw/vectors/ptbxl/records500/00000/` | `ml/data.py --check-hw-vectors` passe : cinq sources fold 10 concordent avec leurs checksums et vecteurs WFDB, ? 500 Hz, forme 5000?12, d?rivations et unit?s attendues. Attribution CC BY 4.0 pr?sente. |
 | T2.12 - Preparation ECG | `saam/dsp/prepare.py` implemente et teste | ECG PTB-XL reel ECG 1 valide. Sorties : `[12,5000]`, `[12,1011]`, `[12,1000]`. Politique stricte : rejet des echantillons invalides, sans interpolation. 14 tests dedies. |
 | Suite de tests | Verification globale effectuee | 112 passed, 1 skipped, 9 deselected. `git diff --check` reussi. |
 
@@ -58,8 +58,8 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 | 2026-11-10 | Audit de code, passe 4 (`audit/round-4/AUDIT_REPORT.md`) : 12 constats sur l04, aucun critique ni majeur, aucun défaut dans la logique du chaincode. Corrigés : la sonde de latence ne marchait qu'une fois par réseau (identifiants fixes, `CreateArtifactRecord` refuse les doublons) ; l'autorisation passait après la validation ; branches de sécurité sans test Jest ; tests compilés périmés jamais nettoyés (`dist-test`) ; `fabric/deploy-chaincode.sh` sans vérification des paquets et jamais appelé par l'enrôlement. Garde-fou de latence (AUD-068) : avec 7 échantillons le p95 est le plus lent, donc un hôte qui cale suffit à dépasser 7,3 s ; le test relance la sonde après un dépassement et n'échoue que si le dépassement se répète trois fois de suite (même budget à chaque exécution, ligne `LATENCY_RETRY` si un passage suit un dépassement) ; avant de passer `BatchTimeout` à 0,5 s, ne changer que si la médiane est aussi proche du délai. Avis `deepmerge` de Jest (AUD-063) : contournement par `overrides` sur 4.1.2 (aucune version corrigée n'existe), `npm audit` à 0, à retirer quand un correctif existe. | T2.5a | corrigé le 2026-11-10 ; reste : `@types/jest` à ajouter au TRD §18 et `NOT_FOUND` à IF-10 (AUD-064, AUD-065), `git switch -c l04-chaincode-create-get` avant le commit |
 | 2026-11-10 | Le lecteur qui porte Node n'est pas monté : `node` et `npm` sont absents du PATH. La suite type-vérifie et lance Jest dans l'image épinglée. L'installation de Jest a signalé 6 avis npm de sévérité faible ; pas de `npm audit fix`. | T2.5a | contourné pour cet incrément |
 
-| T2.10 | Attenuation FIR quantifiee de 52.4227 dB, inferieure a la cible NFR-21 de 60 dB. Mesures realisees sur cinq ECG ; arbitrage requis avant toute modification des coefficients. |
-| T2.10/T2.12 | API partagee `saam.hashing` absente. L'identifiant `b6d7a73a` est provisoire et ne doit pas etre considere comme conforme au contrat officiel tant que l'API commune n'est pas disponible. |
+| T2.10 | AC-16.1 passe (ondulation 0.3793 dB, attenuation 52.4227 dB >= 40 dB). NFR-21 mesure s?par?ment : RSB fixe/flottant global 55.8255 dB (< 60 dB), d?tails par ECG dans le bilan du 2026-11-16. Modifier coefficients/contrat prot?g? n?cessite une autorisation. |
+| T2.10/T2.12 | Le g?n?rateur utilise maintenant `saam.hashing.artifact_hash`; l'identifiant inchang? `b6d7a73a` concorde avec l'API commune. R?g?n?ration r?p?t?e idempotente, JSON et paquet VHDL inchang?s entre deux g?n?rations. |
 
 ## Trouvé, non construit
 
@@ -120,3 +120,145 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 - Manifest registration and artifact persistence are not yet integrated.
 - Failure logging through the complete pipeline remains to be verified.
 - T3.7 must not be considered fully integrated until these points are addressed.
+
+## Role B — T3.1 Canonical hashing (2026-11-16)
+
+### Implemented
+- Added `saam/hashing` with the IF-05 API: `canonical_manifest`, `artifact_hash` and `file_hash`.
+- Canonical manifests use the TRD §7.2 JCS (RFC 8785) serializer; floating-point values are rounded to six decimals and the top-level payload file list is sorted by name.
+- File payloads are hashed as exact bytes with SHA-256. Invalid/non-canonicalizable manifests raise `ValueError`.
+- Added hashing tests for canonical bytes, float rounding, file ordering, input immutability, 100 repeated artifact hashes, exact payload bytes and invalid inputs.
+
+### Validation
+- `.venv\Scripts\python.exe -m pytest tests/hashing -q`: 10 passed.
+- `.venv\Scripts\ruff.exe check saam\hashing tests\hashing`: passed.
+- `.venv\Scripts\mypy.exe --strict saam\hashing`: passed.
+- `git diff --check`: passed.
+
+### Remaining for acceptance
+- The plan requires an inter-OS test in CI. No CI workflow exists in the checked-out project, and this increment did not implement T1.2; cross-OS verification remains pending. Therefore T3.1 is implemented and locally verified, but not yet fully accepted.
+- Local checks used a temporary, ignored `.venv` with Python 3.13.2 because `uv`, Python 3.11 and the test dependencies were unavailable in the existing environment. No dependency or lockfile was added to the project in this increment.
+
+## Role I — T3.8a CNN training and T3.8b fold-10 evaluation (2026-11-16)
+
+### Data and training
+- Verified PTB-XL v1.0.3 metadata checksums, official folds and all 21,799 `records500` WFDB pairs. Fold sizes: train 17,418 (folds 1–8), validation 2,183 (fold 9), test 2,198 (fold 10). No duplicate ECG IDs; each target superclass is represented in each split.
+- Label audit over 21,799 records found 411 with no mapped diagnostic superclass and 5,144 with multiple mapped superclasses. Labels are multi-label as required.
+- The previous 940,848,128-byte `.cache/ptbxl-prepared-v1/.signals.npy.incomplete` was not resumable: no labels, IDs or durable progress index existed. It remains untouched. The first new preparation also stopped at ECG 12722 (fold 2), whose lead V5 is constant zero and is rejected by production `prepare_ecg` during z-score normalization. Its partial cache remains at `ml/cache/ptbxl-prepared-t3.8a/`.
+- The completed cache is `ml/cache/ptbxl-prepared-t3.8a-retry1/`: 19,601 records attempted, 19,600 prepared, and ECG 12722 explicitly excluded with the preparation error. This keeps training and inference on the same preparation contract.
+- One CPU epoch completed with 17,417 training examples and 2,183 validation examples. Train BCE: 0.345053; validation BCE: 0.333861. On a fixed training batch, BCE fell from 0.702990 to 0.170680 over the epoch.
+- Two repeated training runs on the same cache, seed 20261116, batch size 64 and CPU PyTorch produced identical model state tensors. RNG seeding now occurs after cache preparation, so worker-pool initialization cannot alter model initialization or batch order.
+- Saved `ml/artifacts/ecg-cnn1d-1.0.0.pt` and `.json`. The checkpoint reload reproduced its probe prediction exactly. Config records the architecture (310,613 parameters), optimizer, learning rate, loss, class order, folds, seed, rejected ECG, package versions (Python 3.13.2, NumPy 2.5.5, PyTorch 2.15.0+cpu), losses and repeat-run determinism evidence.
+
+### Fold-10 evaluation
+- Added `ml/evaluate.py`; it evaluates only the untouched official fold 10 using the production preparation path, without adding a dependency.
+- All 2,198 fold-10 records prepared successfully. Measured macro ROC AUC: 0.878077 (target ≥ 0.85 met); macro F1 at threshold 0.5: 0.648691. Per-class results and SHA-256 of the weights are in `ml/artifacts/model_card.json`.
+
+### Verification and next dependencies
+- `tests/ml tests/agents tests/dsp tests/hashing`: 73 passed. Ruff on changed ML files: passed. `mypy --strict saam/hashing`: passed. `git diff --check`: passed.
+- Full suite with the repository-local Python path: 157 passed, 1 skipped, 9 deselected; one wrapper test failed because its nested `scripts/test-l.sh --board` pytest subprocess still uses the inaccessible global Windows temp directory (`PermissionError` on `C:\Users\ayedi\AppData\Local\Temp\pytest-of-ayedi`). No project test was disabled or weakened.
+- T3.9–T3.12 are not yet implementable in dependency order: T3.9 requires T2.5b `RegisterModel`/`GetModel`, which is absent from the checked-out chaincode; T3.10 also requires the model registry; T3.11 and T3.12 depend on T3.10 and T3.11 respectively. These tasks remain pending rather than being stubbed around their real dependencies.
+
+
+## Role I ? audit de reprise (2026-11-16)
+
+### T1.6 ? PTB-XL
+- `ml/data.py --check` passe sur PTB-XL v1.0.3 : 21 799 enregistrements, folds train/validation/test = 17 418/2 183/2 198, cinq classes pr?sentes par split.
+- Sommes SHA-256 officielles v?rifi?es pour `ptbxl_database.csv`, `scp_statements.csv` et les 43 598 fichiers `.hea`/`.dat` de `records500` ; int?grit? valide. Les cinq vecteurs mat?riels du fold 10 ont aussi pass? `--check-hw-vectors`.
+- Comptes de diagnostics affich?s : train CD 3 907, HYP 2 119, MI 4 379, NORM 7 596, STTC 4 087 ; validation 495/268/540/955/515 ; test 496/262/550/963/506.
+- La voie de t?l?chargement atomique est impl?ment?e, mais non exerc?e puisqu'un dataset local valide ?tait d?j? disponible. La commande d'acceptation `--check` et la v?rification compl?te de l'int?grit? ont ?t? ex?cut?es.
+
+### T2.10 ? FIR et NFR-21
+- `hw/gen/gen_fir_coeffs.py` utilise `saam.hashing.artifact_hash`; l'identifiant reste `b6d7a73a`. Deux g?n?rations successives ont donn? les m?mes artefacts : JSON SHA-256 `7b0addfdfb6a947764306e226f027193f478b33a86bfa94cba8ca5a06a1614f8`, paquet VHDL `01c9b3481f815cb053e8a071589ca9e3f447c1d656f7c958d71185fb77aa647b`.
+- R?ponse quantifi?e AC-16.1 conforme : ondulation 0.3793 dB et att?nuation de bande coup?e 52.4227 dB (minimum demand? 40 dB). NFR-21 mesure une autre grandeur : RSB de la sortie fixe par rapport au m?me filtre flottant = ECG 9: 55.6441, ECG 38: 55.1000, ECG 40: 56.3912, ECG 57: 55.7512, ECG 59: 56.1280 dB ; global 55.8255 dB (< 60). Tests DSP cibl?s : 29 pass?s. R?solution du d?ficit NFR-21 potentiellement li?e aux coefficients/au contrat arithm?tique prot?g?s ; laiss?e ouverte sans autorisation.
+
+### T3.6 et T3.7 ? ?tat des crit?res
+- T3.6 : les tests d'agent couvrent la suppression des m?tadonn?es WFDB, la production d'identifiants de cas distincts au niveau des soumissions et les motifs de d?tection/remplacement dans les rapports. L'int?gration ? la cr?ation de cas/backend n'est pas pr?sente ici ; AC-02.1/02.2 ne sont donc pas d?clar?s compl?tement v?rifi?s. La d?tection de nom propre s'appuie sur motifs/noms connus, sans NER g?n?rique ; la couverture exhaustive d'AC-02.3 reste non prouv?e.
+- T3.7 : agent de pr?paration test? sur les sorties et le rapport de traitement, le seuil >10 % de valeurs invalides et le rejet d'entr?e illisible. Le passage du cas ? `rejet?` et la journalisation de bout en bout d?pendent de T3.5 absent ; AC-03.3 n'est pas enti?rement v?rifi? au niveau pipeline.
+
+### T3.8a/T3.8b ? revue des crit?res officiels
+- Le plan ?8 d?finit T3.8a par un entra?nement CPU, une ?poque et une baisse de perte ; une ?poque r?elle a baiss? la BCE d'un lot fixe de 0.702990 ? 0.170680. L'artefact final a ?t? recharg? et reproduit sa pr?diction de contr?le exactement.
+- T3.8b ?value exclusivement le fold 10 ; macro ROC AUC r?elle 0.878077 (seuil officiel >=0.85), macro F1 ? seuil 0.5 = 0.648691. Entra?nement folds 1?8, validation fold 9, fold 10 en cache d'?valuation s?par?. Le r?glage n'a pas consult? le fold 10.
+- Artefacts pr?sents : poids `.pt`, configuration `.json`, `model_card.json`, m?triques par classe et hash des poids. Une exclusion r?elle est document?e : ECG 12722 (fold 2, d?rivation V5 constante) rejet? par la pr?paration ; 17 417 exemples entra?nement et 2 183 validation. Deux r?p?titions ? graine 20261116 produisent des tenseurs de poids identiques. Les limites, versions et param?tres figurent dans la config/model card.
+- Les crit?res du plan et les preuves locales ci-dessus concordent ; aucun r?sultat n'est estim? ou substitu?.
+
+### Wrapper `scripts/test-l.sh --board`
+- L'?chec n'est pas un ?chec de test fonctionnel : le pytest enfant re?oit `PermissionError` en cr?ant des r?pertoires sous `%LOCALAPPDATA%\Temp\pytest-of-ayedi`. La suite enfant a 117 pass?s, 1 ignor?, 9 d?s?lectionn?s et 41 erreurs d'acc?s au r?pertoire temporaire ; le wrapper agr?ge cela en un ?chec. Le parent avait 157 pass?s, 1 ignor?, 9 d?s?lectionn?s.
+- L'essai `PYTEST_ADDOPTS=--basetemp=.cache/test-l-child-temp -p no:cacheprovider` n'a pas corrig? le chemin choisi par le pytest enfant. Aucun test n'a ?t? d?sactiv? ou modifi?. Il reste ? corriger la configuration d'environnement temporaire du wrapper pour les processus imbriqu?s Windows.
+
+### D?pendances et port?e ind?pendante
+- T3.9 d?pend de T3.8b et surtout de T2.5b `RegisterModel`/`GetModel`, absent du chaincode disponible ; T3.10 d?pend de T3.9, T3.11 de T3.10, T3.12 de T3.11. Aucun contournement/stub ajout?.
+- T4.13 reste bloqu? par T4.12 et T3.22, absents (pas de client/coverify board, export et rapport requis). T5.4 est bloqu? par T3.17 et T4.1 ; `scripts/bench.py` absent. T5.9 est bloqu? par T4.8 et T4.1 ; scripts de requeue/reanchor et `tests/resilience/` absents. Aucun sous-ensemble autonome d?montrable identifi? dans ces t?ches.
+
+### Validation de cette reprise
+- `pytest tests/hashing tests/ml tests/dsp tests/agents -q`: 76 pass?s, 11 avertissements de d?pr?ciation ?mis par WFDB/pandas.
+- Ruff sur `ml/data.py`, le g?n?rateur FIR et tests associ?s : OK. `mypy --strict saam/hashing` : OK. `git diff --check` : OK.
+- Contr?le cibl?, pas de publication Git. Les caches et artefacts pr?c?demment produits restent en place.
+
+
+## Role I ? exp?rimentation isol?e FIR ?chelle ?2 (2026-11-16)
+
+- Aucun changement au g?n?rateur/coefficient FIR, ? `fir_coef_id`, au contrat `fir_fixed.py`, ? la pr?paration de production, au RTL, aux poids CNN ou aux caches PTB-XL existants.
+- Conventions v?rifi?es : `fir_input` est `int16 = rint(mV ? 1000)` (unit? num?rique 1 ?V); l'?tage produit `int16` selon le contrat Q1.15 avec arrondi puis saturation. L'exp?rience double l'entr?e, conserve la sortie FIR en unit?s ?2 puis divise la sortie align?e par 2, en flottant, avant le passe-haut. La sortie filtr?e retrouve l'?chelle physique, avec l'erreur de quantification r?siduelle mesur?e ci-dessous.
+- Outil isol? : `scripts/experiments/fir_scale_x2.py`; tests d?di?s dans `tests/dsp/test_fir_scale_experiment.py`. Rapports conserv?s sous `.cache/fir-scale-x2-*.json`; rapports canoniques : `fir-scale-x2-official-final-20261116.json` (5 vecteurs) et `fir-scale-x2-expanded-with-leads-20261116.json` + `fir-scale-x2-expanded-repeat-20261116.json` (55 ECG). Les deux rapports ?largis sont identiques octet pour octet. Les vecteurs officiels ont ?t? v?rifi?s contre les sources PTB-XL et sont ceux lus depuis `hw/vectors/ptbxl/`.
+- Cinq vecteurs fold 10 : RSB global 55.825458 ? 61.812804 dB (sorties align?es : 55.872537 ? 61.859060 dB). Tous les 5 RSB agr?g?s par ECG d?passent 60 dB apr?s ?2. Les 60 d?rivations sont pr?sentes; le minimum individuel par d?rivation est 51.373611 dB (ECG 38, AVL), ce qui n'est pas le crit?re global de NFR-21.
+- ?chantillon d?terministe r?parti sur folds 1?10 : 55/55 pr?par?s, aucun rejet; 5 par fold, avec 5 vecteurs officiels ajout?s au tirage fold 10. RSB global 57.694510 ? 63.717209 dB; sorties align?es ?2 : 63.762590 dB. Le minimum par ECG passe seulement de 50.346799 ? 56.373544 dB; le pire couple ECG/d?rivation apr?s ?2 est 47.277943 dB (ECG 9383, AVL). Le minimum agr?g? par d?rivation est 58.539971 dB. Le r?sultat global ne garantit donc pas les signaux faibles ni toutes les d?rivations.
+- Aucun ?cr?tage d'entr?e/sortie dans les deux ?chantillons. Dans l'?chantillon large : maximum absolu d'entr?e 8 024 ? 16 048 apr?s ?2, sortie FIR max 15 330. La borne d'accumulateur calcul?e ? partir des ?chantillons ?2 est 1 001 026 096, sous la limite sign?e 40 bits 549 755 813 887. Le garde-fou exp?rimental rejette une entr?e 16 384, dont le double d?passerait int16.
+- Compensation aval compar?e ? la sortie de pr?paration actuelle : sur les 55 ECG, RMSE du filtr? 0.358990 unit? num?rique (soit 0.000359 mV), ?cart absolu max 1.491466 unit?; pour l'entr?e normalis?e du CNN, RMSE 0.003435 et ?cart absolu max 0.045090. Aucun poids, cache ou score de classification n'a ?t? modifi? ou recalcul?.
+- Les sondes NaN, hors plage de quantification et signal constant restent rejet?es par `prepare_ecg`; la politique qualit? n'a pas ?t? assouplie. Les tests d?di?s + DSP + agent preparation : 40 pass?s. Ruff et `git diff --check` passent.
+- Conclusion exp?rimentale : ?2 d?passe le seuil RSB global sur les cinq vecteurs prescrits et dans l'?chantillon large agr?g?, mais ne garantit pas 60 dB aux faibles amplitudes/par d?rivation. L'int?gration changerait l'?chelle des artefacts `fir_input`/`fir_stage` et la convention de T2.12; aucun changement de production n'est propos? sans d?cision explicite. Le RTL source n'est pas pr?sent dans ce checkout, donc aucune co-simulation mat?rielle n'a ?t? possible.
+
+## Role I - reprise T3.6/T3.7 (2026-11-16)
+
+### T3.6 - ingestion et pseudonymisation (partielle)
+- AC-02.1 : WFDB est reecrit avec un nom d'enregistrement pseudonymise, sans commentaires ni date/heure optionnelles d'en-tete; les fichiers CSV ne conservent que les 12 derivations autorisees. Les identifiants passes a l'agent doivent etre `CASE-<UUID>` canoniques; `new_case_id()` genere un UUID aleatoire. Tests couvrent l'en-tete, les metadonnees temporelles et les rapports stockes.
+- AC-02.2 : deux generations locales fournissent des UUID distincts et aucun lien patient n'est conserve dans le resultat. L'unicite persistante/transactionnelle n'est pas prouvable sans creation de cas ni contrainte du backend; AC-02.2 reste partiel.
+- AC-02.3 : les rapports remis a l'agent sont nettoyes avant leur ajout a `files` sous `report.txt`; les motifs et noms explicitement fournis sont couverts. La detection generique et exhaustive de tout nom propre n'est pas garantie par l'approche regex/liste de l'Architecture; AC-02.3 reste partiel pour les noms inconnus.
+- Les erreurs de lecture exposees par les agents n'incluent plus le chemin source. Il n'existe pas dans ce checkout d'API/couche `cases` pour enregistrer les cas, ni de stockage/log pipeline pour prouver l'absence de PHI dans les journaux de bout en bout.
+
+### T3.7 - preparation ECG (partielle)
+- L'agent utilise toujours `saam.dsp.prepare.prepare_ecg` et la convention T2.12 inchangee (`int16 = sat(rint(mV * 1000))`); aucune echelle x2 ni modification des coefficients FIR. Les rapports gardent `fir_coef_id` et les parametres DSP.
+- L'evaluation de qualite est alignee sur le reechantillonnage, la fenetre de 10 s et la plage int16 du DSP. Un score par derivation et le compte/la cause des echantillons invalides figurent dans le rapport. Au seuil par defaut de 0,90, >10 % invalides renvoie `quality_insufficient`; les entrees encore invalides ne sont jamais interpolees ni ecretees.
+- Les resultats traites fournissent les trois tableaux `.npy` et `processing_report.json`. Le rejet agent renvoie « preparation impossible » sans exposer l'exception brute. En revanche, aucun manifeste/TraceabilityTool, stockage des fichiers, transition du statut du cas ou journal `agent_logs` n'existe dans ce checkout : le critere « 4 fichiers dans le manifeste » et la partie pipeline de AC-03.3 restent bloques par T3.5 et l'integration stockage/tracabilite.
+- Les tests ajoutes couvrent le flux CSV ingestion vers preparation, les sorties agent, l'identifiant FIR, le seuil pour NaN et valeurs hors plage, le rejet sans fuite d'erreur, la serialisation JSON et l'en-tete WFDB date.
+
+### Validation de reprise
+- `pytest tests/agents tests/dsp -q`: 74 passed (14 avertissements de depreciation WFDB/pandas).
+- Ruff sur les six fichiers modifies de T3.6/T3.7 : passe.
+- `git diff --check`: passe.
+- Mypy sur les trois modules concernes n'a pas pu conclure : stubs pandas/WFDB manquants et conflit de resolution de package `agents`/`saam.agents`; aucun resultat de typage positif n'est revendique. Le depot ne configure pas Mypy pour ces modules (regle stricte limitee a hashing/storage).
+- Aucun test existant n'a ete supprime, ignore ou affaibli. Aucun artefact/cache/modele anterieur n'a ete supprime. T3.6 et T3.7 ne sont pas declarees terminees tant que les criteres backend/manifeste/journalisation et les limites de detection de noms restent non verifies.
+
+## Role I - audit des taches restantes et reprise (2026-11-16)
+
+### Statut explicite au checkpoint
+- Terminees et verifiees (preuves dans les sections precedentes) : T1.6, T2.11, T2.12, T3.8a, T3.8b.
+- Partielles : T2.10 (NFR-21 sous la cible et issue ouverte), T3.6 (creation/unicite backend et detection exhaustive des noms non prouvees), T3.7 (persistance/manifeste/journalisation pipeline absents).
+- Bloquees par dependances : T3.9-T3.12 (T2.5b RegisterModel/GetModel et chainage), T4.13 (T4.12 et T3.22), T5.4 (T3.17 et T4.1, machine de demonstration), T5.9 (T4.8 et T4.1, services backend).
+
+
+### T4.13 - co-verification sur carte et etape 9
+- Criteres officiels : AC-17.3 (carte absente/non programmee -> message injoignable, code 2, aucun verdict identique), AC-17.4 et NFR-20 (recalcul sur carte de l'empreinte et du FIR d'une derivation; etape <=15 s). Livrables du plan : `hw/host/coverify.py --target board` et `hw/host/demo_step.py`.
+- L'audit des fichiers confirme que `hw/host/` et ses outils ne sont pas presents. T4.13 depend explicitement de T4.12 (protocole UART/PS et client carte) et T3.22 (export et rapport de co-verification); la chaine amont inclut T3.17, T3.20/T3.21 et la carte/equipement du jalon. Aucun test carte ne peut etre valide ici. Pas de sous-partie autonome conforme identifiee; aucun stub de carte ajoute.
+
+### T5.4 - banc de charge
+- Criteres officiels : executer selon System Design section 14, 10 creations de cas, 20 verifications, 500 lectures par 5 clients et 5 etapes 9; consigner mesures comparees aux budgets DF-01 a DF-05 et ouvrir une decision si une cible manque.
+- `scripts/bench.py` est absent. T5.4 depend de T3.17 et T4.1, et de la machine de demonstration (Q-03 reste ouverte dans `review.md`). Les API/pipeline correspondants sont absents. Un benchmark synthetique ne verifierait pas les NFR du systeme; aucune simulation ni metrique n'a ete inventee.
+
+### T5.9 - resilience
+- Criteres officiels : FM-01/04/05/06, messages App Flow, reprise apres retablissement, absence de double ancrage; livrables `tests/resilience/`, `scripts/reanchor.py`, `scripts/requeue.py`.
+- Ces repertoires/scripts, worker, API de verification et scenario demo sont absents. Depend de T4.8 et T4.1 (et services T3.3/T3.5, T2.6, base et reseau Fabric). Chaque panne specifiee doit etre exercee contre les services reels; aucun composant autonome utile sans les services ne peut demontrer l'acceptation. Rien n'a ete simule.
+
+### T2.10 - FIR / NFR-21
+- Le plan exige AC-16.1/16.4, saturation testee, regeneration idempotente, et NFR-21 RSB >=60 dB ou mesure reelle avec issue documentee. Les coefficients restent ceux de 111 taps Q1.15 (`fir_coef_id=b6d7a73a`); AC-16.1 respecte l'ondulation 0.3793 dB et l'attenuation 52.4227 dB contre 40 dB minimum.
+- Le RSB de reference des 5 vecteurs reste 55.825458 dB, sous NFR-21. L'experience ×2 reste separee et documentee (5 vecteurs: 61.812804 dB global; echantillon elargi de 55 ECG: 63.717209 dB global, avec minimum par ECG 56.373544 dB apres ×2). Ces resultats exploratoires ne valident pas NFR-21 pour le systeme; aucun coefficient, contrat, seuil ni chemin de production n'a ete change. La resolution technique de NFR-21 reste ouverte et necessiterait une decision avant tout changement protege.
+
+### T3.6 / T3.7 - sous-parties independantes
+- Les tests existants couvrent les sorties d'agent, la qualite, la pseudonymisation, le rapport nettoye et la convention FIR. Ajout de deux regressions de confidentialite : les erreurs de lecture CSV et WFDB ne revelent ni chemin ni nom source prive.
+- Limites inchangées : creation transactionnelle/unicite backend pour AC-02.1/02.2; detection exhaustive des noms propres pour AC-02.3; persistence, manifeste/TraceabilityTool, statut de rejet et `agent_logs` pour T3.7/AC-03.3 dependent de T3.5 et des composants de stockage/traceabilite absents. Aucun service simule.
+
+### Diagnostic wrapper Windows et validation
+- Le wrapper lui-meme ne supprime pas les options de test; il efface deliberement `PYTEST_ADDOPTS` afin que les commandes de suite soient stables. L'echec historique vient du processus pytest imbrique (le test `test_board_flag_runs_no_board_tests...`) qui choisit `%LOCALAPPDATA%\\Temp\\pytest-of-ayedi`, non accessible dans le sandbox Windows. Une tentative de reproduction sans venv dans le `PATH` s'est arretee avant pytest (interpreteur introuvable dans Git Bash), ce n'etait pas un echec fonctionnel.
+- Avec `TEMP`, `TMP` et `TMPDIR` pointant vers un dossier temporaire neuf et accessible sous `.cache`, et le venv ajoute au `PATH` herite par Git Bash, `pytest tests/scripts/test_test_l.py -q` a passe : 13 passed en 49.65 s. Le test du wrapper et du mode `--board` est reste actif; aucun test n'a ete desactive ou affaibli. Aucun changement de `scripts/test-l.sh` n'etait necessaire.
+- Regresion apres les deux tests de confidentialite : `pytest tests/agents tests/dsp -q`: 76 passed, 14 avertissements WFDB/pandas. Ruff sur les modules/tests T3.6-T3.7 : passe; `git diff --check` : passe. Mypy ne conclut toujours pas pour ces modules (stubs pandas/WFDB absents et resolution double `agents`/`saam.agents`); la configuration stricte du depot ne cible que hashing/storage.
+- Les caches de tests sont dans des dossiers `.cache` nouvellement crees pour cette execution; aucun cache, poids ou rapport anterieur n'a ete supprime ni remplace. Aucun changement de branche ou operation de publication Git.

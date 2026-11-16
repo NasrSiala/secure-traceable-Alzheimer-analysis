@@ -1,7 +1,8 @@
 ﻿"""SHA-256 integrity verification for PTB-XL files."""
 
-import hashlib
 from pathlib import Path
+
+from saam.hashing import file_hash
 
 
 class PTBXLIntegrityChecker:
@@ -13,18 +14,33 @@ class PTBXLIntegrityChecker:
         if not self.manifest.is_file():
             raise FileNotFoundError(self.manifest)
 
+        self._checksums = self._load_manifest()
+
     def _load_manifest(self):
         checksums = {}
 
         with self.manifest.open("r", encoding="utf-8") as file:
             for line in file:
-                parts = line.strip().split(maxsplit=1)
-
-                if len(parts) != 2:
+                entry = line.strip()
+                if not entry:
                     continue
 
+                parts = entry.split(maxsplit=1)
+                if len(parts) != 2:
+                    raise ValueError("Malformed PTB-XL checksum manifest entry.")
+
                 expected_hash, filename = parts
-                checksums[filename.lstrip("*")] = expected_hash.lower()
+                filename = filename.lstrip("*")
+                expected_hash = expected_hash.lower()
+                if len(expected_hash) != 64 or any(
+                    char not in "0123456789abcdef" for char in expected_hash
+                ):
+                    raise ValueError(
+                        f"Invalid SHA-256 value in manifest for {filename}."
+                    )
+                if filename in checksums:
+                    raise ValueError(f"Duplicate checksum entry: {filename}")
+                checksums[filename] = expected_hash
 
         return checksums
 
@@ -36,24 +52,19 @@ class PTBXLIntegrityChecker:
             raise ValueError("Path must stay inside the dataset directory.")
 
         filename = relative_path.as_posix()
-        checksums = self._load_manifest()
-
-        if filename not in checksums:
+        if filename not in self._checksums:
             raise KeyError(f"File absent from SHA-256 manifest: {filename}")
 
-        file_path = self.root / relative_path
+        root = self.root.resolve()
+        file_path = (root / relative_path).resolve()
+        if not file_path.is_relative_to(root):
+            raise ValueError("Path must stay inside the dataset directory.")
 
         if not file_path.is_file():
             raise FileNotFoundError(file_path)
 
-        digest = hashlib.sha256()
-
-        with file_path.open("rb") as file:
-            for chunk in iter(lambda: file.read(1024 * 1024), b""):
-                digest.update(chunk)
-
-        actual_hash = digest.hexdigest()
-        expected_hash = checksums[filename]
+        actual_hash = file_hash(file_path.read_bytes())
+        expected_hash = self._checksums[filename]
 
         return {
             "file": filename,
