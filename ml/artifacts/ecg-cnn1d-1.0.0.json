@@ -1,0 +1,70 @@
+{
+  "architecture": "lightweight-1d-resnet",
+  "batch_size": 64,
+  "class_names": [
+    "NORM",
+    "MI",
+    "STTC",
+    "CD",
+    "HYP"
+  ],
+  "dataset": "PTB-XL",
+  "dataset_version": "1.0.3",
+  "deterministic_algorithms": true,
+  "epochs": 1,
+  "fold_sizes": {
+    "test": 2198,
+    "train": 17418,
+    "validation": 2183
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "fixed_batch_train_bce_after": 0.1706800013780594,
+      "fixed_batch_train_bce_before": 0.7029901146888733,
+      "train_bce_loss": 0.34505337202953484,
+      "validation_bce_loss": 0.3338614475328443
+    }
+  ],
+  "input_shape": [
+    12,
+    1000
+  ],
+  "learning_rate": 0.001,
+  "loss": "BCEWithLogitsLoss",
+  "model": "ecg-cnn1d",
+  "model_parameters": 310613,
+  "optimizer": "Adam",
+  "preparation": "saam.dsp.prepare.prepare_ecg",
+  "rejected_records": {
+    "12722": "Cannot z-score a lead with zero standard deviation"
+  },
+  "reload_prediction_check": "passed",
+  "reproducibility": {
+    "repeated_run_count": 2,
+    "same_prepared_cache": true,
+    "same_seed": true,
+    "state_dict_identical": true
+  },
+  "seed": 20261116,
+  "train_folds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "training_examples": 17417,
+  "validation_examples": 2183,
+  "validation_fold": 9,
+  "version": "1.0.0",
+  "versions": {
+    "numpy": "2.5.5",
+    "python": "3.13.2",
+    "torch": "2.15.0+cpu"
+  },
+  "weights": "ml\\artifacts\\ecg-cnn1d-1.0.0.pt"
+}

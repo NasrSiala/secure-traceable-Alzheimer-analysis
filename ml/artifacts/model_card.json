@@ -1,0 +1,94 @@
+{
+  "architecture": "lightweight-1d-resnet",
+  "class_names": [
+    "NORM",
+    "MI",
+    "STTC",
+    "CD",
+    "HYP"
+  ],
+  "dataset": "PTB-XL",
+  "dataset_version": "1.0.3",
+  "examples_evaluated": 2198,
+  "excluded_records": {},
+  "fold": 10,
+  "fold_sizes": {
+    "test": 2198,
+    "train": 17418,
+    "validation": 2183
+  },
+  "metrics": {
+    "auc_by_class": {
+      "CD": 0.8929260168302945,
+      "HYP": 0.7792134565642547,
+      "MI": 0.8699878640776699,
+      "NORM": 0.925988707690626,
+      "STTC": 0.9222700256490374
+    },
+    "auc_macro": 0.8780772141623764,
+    "f1_by_class": {
+      "CD": 0.7038789025543992,
+      "HYP": 0.38663484486873506,
+      "MI": 0.6369930761622157,
+      "NORM": 0.8131286394917946,
+      "STTC": 0.702819956616052
+    },
+    "f1_macro": 0.6486910839386393,
+    "threshold": 0.5
+  },
+  "model": "ecg-cnn1d",
+  "target_auc_macro": 0.85,
+  "target_met": true,
+  "training_config": {
+    "architecture": "lightweight-1d-resnet",
+    "batch_size": 64,
+    "class_names": [
+      "NORM",
+      "MI",
+      "STTC",
+      "CD",
+      "HYP"
+    ],
+    "dataset": "PTB-XL",
+    "dataset_version": "1.0.3",
+    "deterministic_algorithms": true,
+    "epochs": 1,
+    "input_shape": [
+      12,
+      1000
+    ],
+    "learning_rate": 0.001,
+    "loss": "BCEWithLogitsLoss",
+    "model_parameters": 310613,
+    "optimizer": "Adam",
+    "preparation": "saam.dsp.prepare.prepare_ecg",
+    "rejected_records": {
+      "12722": "Cannot z-score a lead with zero standard deviation"
+    },
+    "seed": 20261116,
+    "train_folds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "validation_fold": 9
+  },
+  "training_reproducibility": {
+    "repeated_run_count": 2,
+    "same_prepared_cache": true,
+    "same_seed": true,
+    "state_dict_identical": true
+  },
+  "version": "1.0.0",
+  "versions": {
+    "numpy": "2.5.5",
+    "python": "3.13.2",
+    "torch": "2.15.0+cpu"
+  },
+  "weights_sha256": "d977a109126e2a948899ce8713a64ea1c3d4a23cb4cc00d8427e8bade8921706"
+}
