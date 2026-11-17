@@ -5,7 +5,7 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 ## Courant
 
 - **État Backend au 2026-11-17 :** T1.1 réalisée dans le commit `9ed84e2`. Intégration de `origin/main` (`f44baf1`, 25 commits) dans `backend` vérifiée localement. Les mentions de PR non fusionnées du 9–15 novembre ci-dessous sont historiques : les PR #1 à #7 sont maintenant présentes dans `origin/main`.
-- **État des étapes B :** T2.3 implémentée et vérifiée : authentification et sessions PostgreSQL/JWT. Livraison sur backend ; demande courante : T2.1 → T2.2 → T2.3 → T2.4 → T2.7, avec tests, commit détaillé et push après chaque étape. CI suivie dans la PR #10 ; fusion commune à la fin.
+- **État des étapes B :** T2.4 implémentée et vérifiée : autorisation de chaque route par rôle relu en base. Livraison sur backend ; demande courante : T2.1 → T2.2 → T2.3 → T2.4 → T2.7, avec tests, commit détaillé et push après chaque étape. CI suivie dans la PR #10 ; fusion commune à la fin.
 - **T1.2 :** [CI normale verte sur la PR #10](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/43998434040), [sonde rouge confirmée](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/43999103520), puis [retour au vert](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/43999745103) (`7698421`). Protection de `main` en attente administrateur, à traiter avant la fusion finale. T1.5 dépend seulement de T1.1 ; elle peut avancer.
 - **Livraison Backend :** fusion `b4cb6d4` publiée sur `backend` ; [PR #10](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/pull/10) en brouillon pour les étapes Backend cumulatives (T1.1, T1.2, T1.5, T1.10 et T1.11). Revue d'un autre membre avant intégration à main.
 - **Jalon :** M1 — échéance 2026-10-28 dépassée ; porte M2 du 2026-11-03 non approuvée. Plan conservé tel quel, risque de calendrier accepté (D-18).
@@ -21,6 +21,7 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 
 | Tâche | Date | Preuve (commande / lien) |
 |---|---|---|
+| T2.4 — autorisation de chaque route par rôle relu en base | 2026-11-17 | 44 tests ciblés verts : matrice 36 cases, JWT réels trois rôles, anonymes, headers forgés, rétrogradation/désactivation immédiates, OpenAPI, route non déclarée et routeur sans garde. Régression complète Python/TS/VHDL avant push. |
 | T2.3 — authentification et sessions PostgreSQL/JWT | 2026-11-17 | Tests HTTP réels : trois rôles, JWT 30 min, refresh 8 h, cookie sécurisé, verrouillage 5/15 min, limite 10/min/IP inter-instances, rotation concurrente et révocation. Codes/messages français, OpenAPI, erreurs sans secrets ; régression complète avant push. |
 | T2.2 — seed idempotent des comptes et configuration v1 | 2026-11-17 | 5 tests PostgreSQL verts : trois rôles, Argon2id, UUID/hashes conservés, désactivation conservée, rollback sur conflit, CLI deux fois sans fuite de mots de passe. Propriété identity/registry vérifiée ; Mypy vert ; régression complète avant push. |
 | T2.1 — migration initiale figée et atomique | 2026-11-17 | 3 tests ciblés verts : pg_dump canonique identique, upgrade répété, downgrade/upgrade, annulation sur conflit et CLI Alembic. Régression Python/TS/VHDL verte ; privilèges inclus dans le dump. Compte de migration distinct ; schéma canonique et rôles préexistants conservés. |

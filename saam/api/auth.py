@@ -103,10 +103,12 @@ def session_response(session: Session) -> JSONResponse:
 
 
 def register_auth(app: FastAPI, service: IdentityService) -> None:
+    from saam.api.authz import AuthorizedRoute
+
     app.state.identity = service
     limiter = Limiter(key_func=get_remote_address)
     app.state.limiter = limiter
-    router = APIRouter(prefix="/api/v1")
+    router = APIRouter(prefix="/api/v1", route_class=AuthorizedRoute)
 
     @app.exception_handler(AuthError)
     async def auth_error(request: Request, error: AuthError) -> JSONResponse:

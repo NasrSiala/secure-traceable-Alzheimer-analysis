@@ -377,6 +377,30 @@ Les requêtes de navigateur doivent provenir de `AUTH_ORIGIN` (défaut
 suivent le format TRD et les messages français de l'App Flow. Ni les passwords
 ni les tokens soumis ne sont renvoyés dans les erreurs de validation.
 
+## Autorisation des routes — T2.4
+
+`saam/api/authz.py` applique la matrice TRD §8–9 par dépendance FastAPI.
+Une route applicative doit utiliser `AuthorizedRoute` et figurer dans
+`ROUTE_POLICIES`. Les routeurs ajoutés utilisent
+`APIRouter(prefix="/api/v1", route_class=AuthorizedRoute)` ; la création de
+l'application et les tests refusent une route sans contrôle. Le rôle et
+l'activation du compte sont relus en base à chaque requête protégée.
+
+Les trois rôles consultent et vérifient les cas ; seuls operator/admin
+créent un cas et seul admin gère les utilisateurs. Login et health sont
+publics ; refresh/logout authentifient leur cookie de session. OpenAPI reste
+accessible pour le contrat. Les droits des futures routes T3/T4 sont déclarés,
+mais leurs fonctions métier ne sont pas créées par T2.4. Les seuils et modèles
+restent administrés par les scripts prévus (D-17).
+
+```powershell
+uv run --locked pytest tests/api/test_authz.py -q
+```
+
+Les 44 tests couvrent les 36 cases de la matrice, les JWT réels pour les trois
+rôles, les requêtes anonymes, les faux headers de rôle, la rétrogradation et
+la désactivation après émission du JWT, OpenAPI et les routes sans règle.
+
 ## Source des données
 
 Utiliser uniquement les données publiques

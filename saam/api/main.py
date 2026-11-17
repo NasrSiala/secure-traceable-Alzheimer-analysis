@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from saam.api.auth import register_auth
+from saam.api.authz import AuthorizedRoute, assert_route_policies
 from saam.api.health import HealthProbe, HealthResponse, SystemProbe
 from saam.identity.auth import IdentityService
 
@@ -18,6 +19,7 @@ def create_app(
         docs_url=None,
         redoc_url=None,
     )
+    app.router.route_class = AuthorizedRoute
     health_probe = probe if probe is not None else SystemProbe.from_environment()
 
     @app.get(
@@ -36,6 +38,7 @@ def create_app(
     register_auth(
         app, identity if identity is not None else IdentityService.from_environment()
     )
+    assert_route_policies(app)
     return app
 
 
