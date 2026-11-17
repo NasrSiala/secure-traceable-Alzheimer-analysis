@@ -9,3 +9,5 @@
 *.pptx binary
 *.png binary
 *.npy binary
+fabric/compose/*.yaml text eol=lf
+fabric/config/*.yaml text eol=lf

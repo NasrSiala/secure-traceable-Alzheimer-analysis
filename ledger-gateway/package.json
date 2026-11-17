@@ -1,0 +1,32 @@
+{
+  "name": "ledger-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build": "node node_modules/typescript/bin/tsc",
+    "test": "node node_modules/typescript/bin/tsc --noEmit && node -e \"require('fs').rmSync('dist-test',{recursive:true,force:true})\" && node node_modules/typescript/bin/tsc -p tsconfig.test.json && node node_modules/jest/bin/jest.js --runInBand",
+    "start": "node dist/server.js",
+    "check:gateway": "node dist/gateway-check.js",
+    "check:history": "node dist/history-check.js",
+    "check:model": "node dist/model-check.js",
+    "spike:submit": "node dist/spike-submit.js",
+    "spike:latency": "node dist/spike-latency.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "1.14.7",
+    "@hyperledger/fabric-gateway": "1.7.1",
+    "fastify": "5.12.8"
+  },
+  "devDependencies": {
+    "@types/jest": "29.5.14",
+    "@types/node": "20.17.6",
+    "jest": "29.7.0",
+    "typescript": "5.6.3"
+  },
+  "overrides": {
+    "deepmerge": "4.1.2"
+  }
+}

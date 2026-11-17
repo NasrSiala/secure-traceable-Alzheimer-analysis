@@ -56,11 +56,28 @@ Le squelette ne charge pas encore ce fichier.
 - `scripts/` : outils d'administration et de démonstration.
 - `tests/` : emplacements des suites prévues dans le plan.
 
-T1.1 fournit les dossiers et les outils. Les modules Python contiennent
-uniquement leur description ; les autres dossiers ont un fichier `.gitkeep`
-pour être conservés dans Git. Les dépendances applicatives du TRD §18 seront
-ajoutées à mesure que les tâches les utilisent. Aucun service ni test métier
-n'est encore implémenté.
+T1.1 fournit les dossiers et les outils Backend. Les modules de `saam/`
+contiennent uniquement leur description. Les dépendances applicatives du TRD §18
+seront ajoutées à mesure que les tâches les utilisent.
+
+La branche `backend` intègre désormais le travail de L présent dans `main` :
+scripts Fabric, chaincode, passerelle et leurs tests. Le formatage Python commun
+utilise 88 caractères. `pytest.ini` conserve les marqueurs et exclut par défaut
+les tests qui nécessitent Fabric ou la carte.
+
+Pour exécuter les tests locaux communs :
+
+```powershell
+uv run --locked pytest -q
+```
+
+La suite complète de L (Python et TypeScript) est `bash scripts/test-l.sh`,
+avec Git Bash et Node disponibles. Les options `--fabric` et `--board` demandent
+respectivement le réseau Docker et la carte ; les tests locaux n'en ont pas besoin.
+
+La passerelle écoute par défaut sur le port 8080. Ses jetons sont lus dans
+le fichier JSON `AGENT_TOKEN_FILE` ; la configuration et les identités sont
+décrites dans `ledger-gateway/.env.example`.
 
 La suite prévue est T1.2 (CI), puis T1.5 (pile Docker), selon les dépendances
 du plan. Les contrôles d'architecture et la simulation relèvent de T1.11 et T1.10.

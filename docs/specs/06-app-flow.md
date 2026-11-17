@@ -2,7 +2,7 @@
 
 | Owner | Status | Version | Last updated | Suite version | PRD | TRD | Schema | System Design | Designs |
 |---|---|---|---|---|---|---|---|---|---|
-| Équipe projet | In review | 2.0.1 | 2026-10-23 | 2.0.1 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) | [07-design-brief.md](07-design-brief.md) |
+| Équipe projet | In review | 2.0.2 | 2026-11-09 | 2.1.4 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [04-backend-schema.md](04-backend-schema.md) | [05-system-design.md](05-system-design.md) | [07-design-brief.md](07-design-brief.md) |
 
 ## 1. Périmètre et plateformes
 
@@ -83,8 +83,8 @@ flowchart TD
 | S-06 | Cas · Intégrité `/cases/:caseRef/integrity` | Lancer une vérification, voir les résultats et l'historique des vérifications | tous | `POST/GET /cases/{id}/verifications` ; E-verifications, E-verification_items | S-04 (onglet) | S-04, S-05, S-07 | DB §S-06 |
 | S-07 | Cas · Journal des agents `/cases/:caseRef/logs` | Actions des agents pas à pas | tous | `GET /cases/{id}/agent-logs` ; E-agent_logs | S-04 (onglet) | S-04, S-05, S-06 | DB §S-07 |
 | S-08 | Admin · Utilisateurs `/admin/users` | Créer, modifier rôle, désactiver, réinitialiser mot de passe | admin | `GET/POST/PATCH /admin/users` ; E-users | menu admin | S-02 | DB §S-08 |
-| ~~S-09~~ | ~~Admin · Validation~~ — retiré v2.0.0 (D-17) : remplacé par `scripts/registry.py config new|activate` | — | — | — | — | — | — |
-| ~~S-10~~ | ~~Admin · Modèles~~ — retiré v2.0.0 (D-17) : remplacé par `scripts/registry.py model list|activate` | — | — | — | — | — | — |
+| ~~S-09~~ | ~~Admin · Validation~~ — retiré v2.0.0 (D-17) : remplacé par `scripts/registry.py config new\|activate` | — | — | — | — | — | — |
+| ~~S-10~~ | ~~Admin · Modèles~~ — retiré v2.0.0 (D-17) : remplacé par `scripts/registry.py model list\|activate` | — | — | — | — | — | — |
 | S-11 | Erreur 403 / 404 | Expliquer et rediriger | tous | — | toute route | S-02 | DB §S-11 |
 | S-12 | À propos `/about` | Avertissement « prototype », attribution PTB-XL, versions (logiciel, modèle actif) | public | `GET /health` (versions) | pied de page | S-02 ou S-01 | DB §S-12 |
 
@@ -189,7 +189,7 @@ flowchart TD
 ### CLI — Co-vérification et étape de démo (J-10, J-11)
 | Aspect | Specification |
 |---|---|
-| Trigger | `coverify.py --case CASE-… --target sim|board` ; `demo_step.py --case CASE-… --artifact <type> --lead <dérivation>` |
+| Trigger | `coverify.py --case CASE-… --target sim\|board` ; `demo_step.py --case CASE-… --artifact <type> --lead <dérivation>` |
 | Validation | Cas inexistant ou vecteurs non exportés : « Vecteurs introuvables pour CASE-… — lancez export_hw_vectors.py. » ; dérivation inconnue : « Dérivation inconnue (attendu : I, II, III, aVR, aVL, aVF, V1–V6). » |
 | Loading state | Barre de progression par vecteur ; `INFO` de la carte affiché d'abord (VERSION, COEF_ID) |
 | Success state | Tableau console vecteur / attendu / obtenu / verdict ; ligne finale « IDENTIQUE (n/n) » ; rapport écrit |

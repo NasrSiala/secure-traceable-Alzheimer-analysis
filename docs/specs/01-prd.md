@@ -2,7 +2,7 @@
 
 | Owner | Status | Version | Last updated | Suite version | Approvers |
 |---|---|---|---|---|---|
-| Équipe projet (4 membres) | Approved — vision et périmètre validés par l'encadrant (D-15) ; plan recalé (D-17) | 2.0.1 | 2026-10-23 | 2.0.1 | Encadrant pédagogique `[TBD: nom]` |
+| Équipe projet (4 membres) | Approved — vision et périmètre validés par l'encadrant (D-15) ; plan recalé (D-17) | 2.0.1 | 2026-10-23 | 2.1.4 | Encadrant pédagogique `[TBD: nom]` |
 
 Source : cahier des charges « Projet 1 » ([Projet 1.md](../../Projet%201.md)).
 

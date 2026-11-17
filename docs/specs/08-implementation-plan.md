@@ -2,7 +2,7 @@
 
 | Owner | Status | Version | Last updated | Suite version |
 |---|---|---|---|---|
-| Équipe projet | Approved scope (D-15) — plan recalé (D-17) | 2.0.1 | 2026-10-23 | 2.0.1 |
+| Équipe projet | Approved scope (D-15) — plan recalé (D-17) | 2.1.4 | 2026-11-09 | 2.1.4 |
 
 v2.0.0 : aucun développement n'a eu lieu entre le 2026-10-05 et le 2026-10-23 (AAR-01). Le plan est recalé sur 23/10 → 30/11, avec chevauchement des jalons, coupes D-17 et rééquilibrage des rôles (§3, §11).
 
@@ -11,14 +11,15 @@ v2.0.0 : aucun développement n'a eu lieu entre le 2026-10-05 et le 2026-10-23 (
 | Document | Version | Fait foi sur |
 |---|---|---|
 | [01-prd.md](01-prd.md) | 2.0.1 | Périmètre, priorités, stories, critères d'acceptation |
-| [02-trd.md](02-trd.md) | 2.0.1 | Stack, NFR, API publique, sécurité, environnements |
-| [03-architecture.md](03-architecture.md) | 1.0.1 | Où va le code (SVC), règles de dépendance, interfaces (IF), propriété des données, ADR, contrats matériels (§5.6) |
-| [04-backend-schema.md](04-backend-schema.md) + [schema.sql](schema.sql) | 2.0.1 | Données, contraintes, autorisations, enregistrements on-chain |
-| [05-system-design.md](05-system-design.md) | 1.0.1 | Flux (DF), budgets de latence, modes de défaillance (FM), tests de charge et de pannes |
-| [06-app-flow.md](06-app-flow.md) | 2.0.1 | Écrans, parcours, états, messages |
+| [02-trd.md](02-trd.md) | 2.0.4 | Stack, NFR, API publique, sécurité, environnements |
+| [03-architecture.md](03-architecture.md) | 1.0.2 | Où va le code (SVC), règles de dépendance, interfaces (IF), propriété des données, ADR, contrats matériels (§5.6) |
+| [04-backend-schema.md](04-backend-schema.md) + [schema.sql](schema.sql) | 2.0.3 | Données, contraintes, autorisations, enregistrements on-chain |
+| [05-system-design.md](05-system-design.md) | 1.0.2 | Flux (DF), budgets de latence, modes de défaillance (FM), tests de charge et de pannes |
+| [06-app-flow.md](06-app-flow.md) | 2.0.2 | Écrans, parcours, états, messages |
 | [07-design-brief.md](07-design-brief.md) | 2.0.1 | Tokens, composants, rendu |
-| [review.md](review.md) | 2.0.1 | Décisions (D-xx) — priment sur tout document plus ancien |
-| [aar.md](aar.md) | 2.0.1 | Actions des AAR en cours |
+| [review.md](review.md) | 2.1.4 | Décisions (D-xx) — priment sur tout document plus ancien |
+| [aar.md](aar.md) | 2.1.4 | Actions des AAR en cours |
+| [08-implementation-plan-L.md](08-implementation-plan-L.md) | 1.0.0 | Découpage des tâches de L en incréments, règles de livraison par incrément |
 
 En cas de conflit : décision D-xx > document propriétaire du sujet (tableau ci-dessus) > ce plan. Signaler le conflit dans `PROGRESS.md` (Issues) plutôt que trancher en silence.
 
@@ -40,7 +41,7 @@ En cas de conflit : décision D-xx > document propriétaire du sujet (tableau ci
 | **B** — Backend | API, base, hachage, stockage, traçabilité, graphe LangGraph, vérification, contrôles d'architecture | SVC-api, SVC-identity, SVC-cases, SVC-traceability, SVC-verification, SVC-audit, SVC-hashing, SVC-ledger-client, SVC-hw-host (export, simulation) | ≈ 19,1 j |
 | **F** — Frontend | React, design system, écrans admin et journal (y compris leurs endpoints), E2E, accessibilité | SVC-web | ≈ 13,6 j |
 
-`[TBD: noms des 4 membres, Q-11 — en retard, action A-01.1]`. Chaque tâche a un responsable et un relecteur d'un autre rôle. Capacité disponible : ≈ 26 jours ouvrés du 23/10 au 30/11, soit ≈ 21 jours par personne à 4 jours par semaine.
+**L : Nasr Siala** (2026-11-09) ; `[TBD: noms de I, B, F — Q-11, action A-02.3, escaladée]`. Chaque tâche a un responsable et un relecteur d'un autre rôle. Capacité disponible : ≈ 26 jours ouvrés du 23/10 au 30/11, soit ≈ 21 jours par personne à 4 jours par semaine. Plan du rôle L, découpé en incréments : [08-implementation-plan-L.md](08-implementation-plan-L.md).
 
 ## 4. Règles d'engagement des agents (et des humains)
 
@@ -52,6 +53,7 @@ Reprises dans [AGENTS.md](../../AGENTS.md).
 - **S'arrêter et demander si :** un critère d'acceptation semble impossible ou contradictoire ; une modification de `schema.sql`, du chaincode (schéma on-chain), de la règle de hachage, du contrat arithmétique FIR ou des coefficients (`fir_coef_id`), des cartes de registres AXI ou du protocole UART (Architecture §5.6) est nécessaire ; une dépendance nouvelle non listée au TRD §18 ; une règle de dépendance de l'Architecture §6 devrait être enfreinte ; un test existant doit être supprimé ou affaibli ; une vérification échoue encore après 3 tentatives ; une action supprimerait des données ou réécrirait l'historique git ; une donnée non publique est en jeu.
 - **Secrets :** jamais dans git (`.env`, wallet Fabric, `ARTIFACT_KEY`) ; uniquement `.env.example`.
 - **Git :** PR relue par un autre membre ; CI verte obligatoire ; pas de push direct sur `main`.
+- **Livraison par incrément (D-19) :** après chaque incrément, créer les tests (nouvelles fonctions, régression, anciens tests mis à jour), les lancer, committer, pousser sur une branche du même nom que l'incrément, puis créer la merge request vers `main` (détail : AGENTS.md et [plan de L](08-implementation-plan-L.md) §3).
 - **AAR :** à chaque checkpoint de jalon, écrire l'AAR dans [aar.md](aar.md) avant de demander l'approbation, en commençant par les actions ouvertes de l'AAR précédent.
 
 ## 5. Commandes de vérification
@@ -70,6 +72,7 @@ Reprises dans [AGENTS.md](../../AGENTS.md).
 | Réseau Fabric | `./fabric/network.sh up && ./fabric/deploy-chaincode.sh` |
 | Pile complète | `docker compose up -d --build && curl -k https://localhost/api/v1/health` |
 | Démo | `uv run python scripts/demo.py --record 00001` |
+| Suite de tests du rôle L | `./scripts/test-l.sh` (sans réseau ni carte) ; `--fabric` ; `--board` |
 | E2E | `cd frontend && npx playwright test` |
 | Modèle | `uv run python ml/evaluate.py --fold 10` |
 | DSP (modèle bit-exact) | `uv run pytest tests/dsp -q` |
@@ -117,7 +120,7 @@ Taille : S ≤ ½ journée, M ≤ 1 journée, L ≤ 2 jours (à découper si plu
 | T1.6 | I | ADR-08 (révisé), TRD §10 | `ml/data.py` : téléchargement PTB-XL v1.0.3 (`records500`), sommes de contrôle, chargement 500 Hz, folds 1–8/9/10, superclasses | Comptes par fold et par classe affichés | `uv run python ml/data.py --check` | T1.1 | S |
 | T1.7 | F | DB §6–§8, §14 (C-top-nav) | Vite + React + TS + Tailwind avec tokens DB §6, polices auto-hébergées, C-top-nav, routes vides S-01…S-12 | Build OK, tokens appliqués | `npm run build` | T1.1 | S |
 | T1.8 | L | NFR-01 | Mesure de latence 7 tx | Résultat dans `PROGRESS.md` (Décisions) | `npm run spike:latency` | T1.4 | S |
-| T1.9 | L | TRD §3, §6.6 (Intégration Zynq), ADR-13, D-12 | Spike Zybo Z7-10 : fichiers de carte Digilent, `build.tcl` minimal (PS7 + 1 registre AXI4-Lite), application Vitis « hello » UART, `BOOT.bin` sur SD, essai 921 600 bauds | Registre écrit/relu depuis le PS ; démarrage SD ; débit UART consigné dans `PROGRESS.md` | `vivado -mode batch -source hw/vivado/build.tcl` + console série | T1.1 | M |
+| T1.9 | L | TRD §3, Architecture §5.6 (Intégration Zynq), ADR-13, D-12 | Spike Zybo Z7-10 : fichiers de carte Digilent, `build.tcl` minimal (PS7 + 1 registre AXI4-Lite), application Vitis « hello » UART, `BOOT.bin` sur SD, essai 921 600 bauds | Registre écrit/relu depuis le PS ; démarrage SD ; débit UART consigné dans `PROGRESS.md` | `vivado -mode batch -source hw/vivado/build.tcl` + console série | T1.1 | M |
 | T1.10 | B | ADR-12, AC-17.2 | `hw/sim/` (Makefile GHDL + cocotb) + job CI `hw-sim` | Job vert sur un module VHDL trivial ; bloque la PR si rouge | `make -C hw/sim` | T1.2 | S |
 | T1.11 | B | Architecture §6, §8, §12, ADR-15, ADR-16, NFR-13 | Contrats import-linter (`pyproject.toml`), `tests/arch/` (propriété des tables, oracles cocotb), `tests/db/test_grants.py`, en CI | Un import interdit volontaire fait échouer la CI ; contrôles verts sur le squelette | `uv run lint-imports && uv run pytest tests/arch -q` | T1.2 | S |
 
@@ -273,7 +276,7 @@ Charge = somme des tailles (S = ½ j, M = 1 j, L = 2 j) ; tâches partagées ré
 
 ## 12. Risques
 
-Voir PRD §14, TRD §22 et System Design §18. Spécifiques au plan : (1) départ tardif de 18 jours (AAR-01) → jalons chevauchants, aucune marge de calendrier hors des coupes listées au §2 ; (2) charge du rôle L en M1–M2 (Fabric + spike Zybo T1.9) → B l'assiste sur T1.5/T2.6 si retard ; L porte ensuite ≈ 10 jours de matériel en M3–M6, compensé par l'absence de tâches Fabric après M2 ; (3) marge de B ≈ 2 jours (§11) → reprises prévues par I et F ; (4) entraînement (T3.8b) sur le chemin critique de T3.10 → agents factices jusqu'à mi-M3, repli scikit-learn (ADR-08) si AUC indisponible au 2026-11-12 ; points de contrôle hebdomadaires de la charge à chaque AAR.
+Voir PRD §14, TRD §22 et System Design §18. Spécifiques au plan : (1) départ tardif de 18 jours (AAR-01) → jalons chevauchants, aucune marge de calendrier hors des coupes listées au §2 ; (2) charge du rôle L en M1–M2 (Fabric + spike Zybo T1.9) → B l'assiste sur T1.5/T2.6 si retard ; L porte ensuite ≈ 10 jours de matériel en M3–M6, compensé par l'absence de tâches Fabric après M2 ; (3) marge de B ≈ 2 jours (§11) → reprises prévues par I et F ; (4) entraînement (T3.8b) sur le chemin critique de T3.10 → agents factices jusqu'à mi-M3, repli scikit-learn (ADR-08) si AUC indisponible au 2026-11-12 ; points de contrôle hebdomadaires de la charge à chaque AAR ; (5) calendrier : D-18 (2026-11-09) maintient le plan sans coupe alors que l'équipe n'a rien commencé ; 64,5 j de tâches pour 64 j-personne au maximum du 09/11 au 30/11 (5 j/semaine), sans marge, donc une attente de dépendance (T2.6 de L avant T2.7 et T3.3 de B) ou une absence suffit à manquer la soutenance ; la liste de coupes du §2 reste la seule soupape, sur décision de l'utilisateur.
 
 ## 13. Hypothèses
 
@@ -292,7 +295,7 @@ Voir [review.md](review.md).
 | US-01 | T3.4, T3.15 |
 | US-02 | T3.6 |
 | US-03 | T2.10, T2.12, T3.7 |
-| US-04 | T3.8a, T3.8b, T3.9, T3.10, T3.16a, T4.7 |
+| US-04 | T2.5b, T3.8a, T3.8b, T3.9, T3.10, T3.16a, T4.7 |
 | US-05 | T3.11, T3.16a, T4.7 |
 | US-06 | T3.12, T3.16a |
 | US-07 | T2.5a, T2.6, T2.7, T3.1, T3.2, T3.3, T3.16a, T3.17 |

@@ -1,11 +1,11 @@
 # AGENTS.md — SAAMSTIAHF
 
-Instructions pour tout agent de code (et tout membre de l'équipe) travaillant dans ce dépôt. Suite de specs v2.0.1 (8 documents).
+Instructions pour tout agent de code (et tout membre de l'équipe) travaillant dans ce dépôt. Suite de specs v2.1.4 (8 documents).
 
 ## À lire avant toute tâche
 
 1. Ce fichier et [PROGRESS.md](PROGRESS.md) (tâche courante, décisions, problèmes).
-2. La tâche dans [docs/specs/08-implementation-plan.md](docs/specs/08-implementation-plan.md) §8 et chaque ID listé dans sa colonne « Entrées » (US-/AC-, NFR-, SVC-, IF-, ADR-, E-, DF-, FM-, S-, C-).
+2. La tâche dans [docs/specs/08-implementation-plan.md](docs/specs/08-implementation-plan.md) §8 et chaque ID listé dans sa colonne « Entrées » (US-/AC-, NFR-, SVC-, IF-, ADR-, E-, DF-, FM-, S-, C-). Rôle L : l'incrément dans [docs/specs/08-implementation-plan-L.md](docs/specs/08-implementation-plan-L.md).
 3. Les décisions de [docs/specs/review.md](docs/specs/review.md) — elles priment sur les documents.
 4. Les actions ouvertes de [docs/specs/aar.md](docs/specs/aar.md).
 
@@ -27,8 +27,8 @@ ledger-gateway/  # TypeScript, Fastify + @hyperledger/fabric-gateway (seul déte
 frontend/        # React + Vite + TS + Tailwind
 fabric/          # scripts test-network, enrôlement des identités
 ml/              # données PTB-XL, entraînement, évaluation
-scripts/         # seed, register_model, registry, demo, tamper, purge_case, reanchor, requeue, export_hw_vectors, backup/restore, bench
-tests/           # unit, api, agents, arch, db, integration, integrity, resilience, dsp, e2e
+scripts/         # seed, register_model, registry, demo, tamper, purge_case, reanchor, requeue, export_hw_vectors, backup/restore, bench, test-l
+tests/           # unit, api, agents, arch, db, fabric, integration, integrity, resilience, dsp, e2e
 docs/specs/      # la suite de specs (8 documents + traceability, review, aar, CHANGELOG)
 ```
 
@@ -45,6 +45,7 @@ docs/specs/      # la suite de specs (8 documents + traceability, review, aar, C
 | Réseau Fabric | `./fabric/network.sh up && ./fabric/deploy-chaincode.sh` |
 | Pile | `docker compose up -d --build` puis `curl -k https://localhost/api/v1/health` |
 | Démo | `uv run python scripts/demo.py --record 00001` |
+| Suite de tests du rôle L | `./scripts/test-l.sh` (sans réseau ni carte) ; `--fabric` ; `--board` |
 | Charge | `uv run python scripts/bench.py` |
 | DSP (modèle bit-exact) | `uv run pytest tests/dsp -q` |
 | Matériel — simulation | `make -C hw/sim` |
@@ -55,11 +56,26 @@ Une tâche n'est terminée que lorsque sa commande de vérification passe et que
 
 ## Déroulement
 
-1. Prendre la première tâche débloquée du jalon courant. Une tâche à la fois.
-2. Lire ses entrées. Ne construire que ce que la tâche demande.
-3. Lancer la vérification de la tâche et les contrôles standard ; corriger jusqu'au vert.
+1. Prendre le premier incrément débloqué (plan de rôle ; sinon la première tâche du plan 08). Un incrément à la fois.
+2. Lire ses entrées. Ne construire que ce que l'incrément demande.
+3. Créer les tests, lancer la vérification de l'incrément et les contrôles standard ; corriger jusqu'au vert.
 4. Mettre à jour `PROGRESS.md` : fait, preuve, décisions, problèmes.
-5. Committer avec l'ID de tâche dans le message.
+5. Livrer : commit, push, merge request (section suivante).
+
+## Livraison par incrément
+
+Un incrément est le plus petit lot testé et démontrable (1 jour au plus). Le plan de rôle le définit (L : `docs/specs/08-implementation-plan-L.md`). Pour une tâche du plan 08 sans plan de rôle, la tâche est l'incrément et son nom est `t<ID>-<slug>`. Le nom d'un incrément est un nom de branche valide.
+
+Après chaque incrément, dans cet ordre. Aucun incrément n'est commité sans ses tests.
+
+1. Créer les tests : (a) tests des nouvelles fonctions ; (b) tests de régression : relancer toute la suite du rôle (`./scripts/test-l.sh` pour L) et figer par un test chaque bug corrigé ou contrat touché ; (c) mettre à jour les anciens tests que l'incrément change légitimement. Ne jamais supprimer, ignorer ou affaiblir un test (cas « s'arrêter et demander »).
+2. Lancer la suite complète du rôle et la vérification de l'incrément : tout vert.
+3. Commit Conventional Commits : `<type>(<incrément>): <résumé> [<tâche>]`.
+4. Push sur une branche qui porte exactement le nom de l'incrément : `git switch -c <incrément> origin/main` au début, `git push -u origin <incrément>` à la fin.
+5. Créer la merge request vers `main` (pull request GitHub) : `gh pr create --base main --head <incrément>`. Le corps liste les tâches, les AC et NFR couverts, les tests nouveaux, de régression et mis à jour, et les preuves (modèle : plan de L §3).
+6. Mettre à jour `PROGRESS.md`. Ne pas fusionner soi-même : un autre membre relit et la CI est verte.
+
+L'incrément suivant part de `main` à jour. Si la merge request précédente n'est pas fusionnée et que l'incrément en dépend, partir de sa branche et l'écrire dans la merge request.
 
 ## Conventions
 
@@ -71,7 +87,7 @@ Une tâche n'est terminée que lorsque sa commande de vérification passe et que
 - VHDL-2008, `ieee.numeric_std` uniquement, une horloge, `aresetn`, aucune primitive constructeur dans `hw/rtl/` ; fichiers générés (`fir_coeffs_pkg.vhd`, `fir_coeffs.json`) jamais édités à la main.
 - Les bancs cocotb utilisent les oracles du pipeline (`saam/hashing`, `saam/dsp/fir_fixed.py`) — jamais une seconde implémentation de référence.
 - Contrat arithmétique FIR, cartes de registres AXI et protocole UART : Architecture §5.6 (fait foi).
-- Commits Conventional Commits ; branche `t<ID>-<slug>` ; PR relue par un autre membre.
+- Commits Conventional Commits ; une branche par incrément, au nom de l'incrément ; merge request relue par un autre membre (voir « Livraison par incrément »).
 - Versions au format x.y.z (politique dans `docs/specs/CHANGELOG.md`) : toute modification d'un document de spec met à jour sa version (majeure si elle casse la compatibilité, mineure si elle ajoute, correctif sinon), sa date, la version de suite de tous les en-têtes et ajoute une entrée au CHANGELOG. Tags git du logiciel : `v0.y.z`, puis `v1.0.0` à la soutenance.
 
 ## Garde de périmètre

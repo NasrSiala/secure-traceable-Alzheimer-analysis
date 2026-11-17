@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | PRD | Architecture | System Design |
 |---|---|---|---|---|---|---|---|---|
-| Équipe projet | Encadrant `[TBD: nom, Q-12]` | Approved (vision validée par l'encadrant, D-15) | 2.0.1 | 2026-10-23 | 2.0.1 | [01-prd.md](01-prd.md) | [03-architecture.md](03-architecture.md) | [05-system-design.md](05-system-design.md) |
+| Équipe projet | Encadrant `[TBD: nom, Q-12]` | Approved (vision validée par l'encadrant, D-15) | 2.0.4 | 2026-11-09 | 2.1.4 | [01-prd.md](01-prd.md) | [03-architecture.md](03-architecture.md) | [05-system-design.md](05-system-design.md) |
 
 Depuis la suite v2.0.0, ce document garde la technologie et les exigences (stack, plateformes, cibles NFR, conventions d'API publique, sécurité, environnements, coûts). La structure et les ADR sont dans l'Architecture ; la tenue en charge et les pannes dans le System Design.
 
@@ -14,7 +14,7 @@ Couvre la v1 du prototype (soutenance le 2026-11-30) : backend API, pipeline age
 
 | PRD | Approche technique | Section |
 |---|---|---|
-| F-01 Ingestion + pseudonymisation | `POST /api/cases` multipart ; parseur WFDB/CSV ; suppression des champs identifiants ; `CASE-<uuid4>` | §8, §12, Architecture §5.3 |
+| F-01 Ingestion + pseudonymisation | `POST /api/v1/cases` multipart ; parseur WFDB/CSV ; suppression des champs identifiants ; `CASE-<uuid4>` | §8, §12, Architecture §5.3 |
 | F-02 Préparation | Agent `preparation` : quantification int16 à 500 Hz, étage FIR passe-bas 40 Hz + décimation ×5 en virgule fixe (modèle bit-exact partagé avec le VHDL, ADR-14), passe-haut 0,5 Hz, normalisation z-score par dérivation, score de qualité | Architecture §5.3, §5.6 |
 | F-03 Analyse IA | Agent `prediction` : CNN 1D PyTorch, 5 superclasses PTB-XL, sigmoïdes multi-étiquette (ADR-08) | Architecture §5.3, ADR-08 |
 | F-04 Validation | Agent `validation` : règles R1–R5 configurables, re-vérification d'intégrité des ancêtres | Architecture §5.4 |
@@ -23,7 +23,7 @@ Couvre la v1 du prototype (soutenance le 2026-11-30) : backend API, pipeline age
 | F-07 Stockage hors chaîne | Volume fichiers chiffrés AES-256-GCM (ADR-05) | §5, §12, ADR-05 |
 | F-08 Ancrage Fabric | Chaincode TypeScript `provenance` ; service `ledger-gateway` (ADR-02) | §8.3, Architecture §5 |
 | F-09 Orchestration agentique | LangGraph `StateGraph` dans le `worker`, file de jobs PostgreSQL (ADR-03) | §11, Architecture §5.2 |
-| F-10 Historique | `GET /api/cases/{id}/history` → chaincode `GetCaseHistory` | §8 |
+| F-10 Historique | `GET /api/v1/cases/{id}/history` → chaincode `GetCaseHistory` | §8 |
 | F-11 Vérification | Agent `verifier` : recalcul + comparaison on-chain, 4 statuts | Architecture §5.5 |
 | F-12 Tableau de bord | React + Vite + TypeScript (ADR-07) | §4, ADR-07 |
 | F-13 Auth et rôles | JWT + Argon2id + matrice de rôles ; identités Fabric par agent (ADR-09) | §9 |
@@ -109,13 +109,13 @@ Détail et DDL : [04-backend-schema.md](04-backend-schema.md). Entités : E-user
 | POST | `/cases/{case_id}/verifications` | tous | US-10 |
 | GET | `/cases/{case_id}/verifications` | tous | US-10 |
 | GET/POST/PATCH | `/admin/users` | admin | US-11 |
-| ~~GET/POST~~ | ~~`/admin/validation-configs`~~ — retiré v2.0.0 (D-17), remplacé par `scripts/registry.py config new|activate` (IF-12) | admin | US-05 |
+| ~~GET/POST~~ | ~~`/admin/validation-configs`~~ — retiré v2.0.0 (D-17), remplacé par `scripts/registry.py config new\|activate` (IF-12) | admin | US-05 |
 | ~~POST~~ | ~~`/admin/validation-configs/{id}/activate`~~ — retiré v2.0.0 (D-17) | admin | US-05 |
-| ~~GET~~ | ~~`/admin/models`~~ — retiré v2.0.0 (D-17), remplacé par `scripts/registry.py model list|activate` | admin | US-04 |
+| ~~GET~~ | ~~`/admin/models`~~ — retiré v2.0.0 (D-17), remplacé par `scripts/registry.py model list\|activate` | admin | US-04 |
 | ~~PATCH~~ | ~~`/admin/models/{id}`~~ — retiré v2.0.0 (D-17) | admin | US-04 |
 | GET | `/health` (état de chaque service + version logicielle + modèle actif, pour S-12) | public | NFR-11 |
 
-`scripts/registry.py` s'exécute sur la machine de démo avec les droits admin de la base (`app_worker`) ; il applique les mêmes règles que les anciens endpoints : une nouvelle version de seuils est créée inactive, un modèle non ancré ne peut pas être activé.
+`scripts/registry.py` s'exécute sur la machine de démo avec le rôle de base `app_api` (le seul autorisé à écrire `validation_configs`, `schema.sql`) ; il applique les mêmes règles que les anciens endpoints : une nouvelle version de seuils est créée inactive, un modèle non ancré ne peut pas être activé. `scripts/register_model.py`, qui insère dans `models`, utilise le rôle `app_worker`.
 
 ### 8.2 Endpoints internes `ledger-gateway` (réseau Docker interne uniquement)
 
@@ -259,7 +259,7 @@ Logs JSON structurés (structlog / pino) avec `case_id` et `trace_id` sur tous l
 
 ## 18. Dépendances et bibliothèques
 
-Python : fastapi, sqlalchemy, alembic, pydantic, argon2-cffi, pyjwt, slowapi, langgraph, langgraph-checkpoint-postgres, torch (CPU), numpy, scipy, wfdb, neurokit2, captum (non planifié en v1, D-17), cryptography, rfc8785, httpx, structlog ; outillage : import-linter (contrôles d'architecture). Node : fabric-contract-api, fabric-shim, @hyperledger/fabric-gateway, @grpc/grpc-js, fastify, pino. Front : react, react-router, @tanstack/react-query, tailwindcss, plotly.js. Matériel : GHDL (≥ 3.0, VHDL-2008, GPL-2.0, outil uniquement), cocotb (BSD-3), cocotbext-axi (MIT), pyserial (BSD-3), AMD Vivado/Vitis (propriétaire, édition gratuite), fichiers de carte Digilent `[TBD: licence]`. Licences : MIT/BSD/Apache-2.0 (Fabric Apache-2.0). Versions épinglées (`uv.lock`, `package-lock.json`) ; `pip-audit` et `npm audit` en CI.
+Python : fastapi, sqlalchemy, alembic, pydantic, argon2-cffi, pyjwt, slowapi, langgraph, langgraph-checkpoint-postgres, torch (CPU), numpy, scipy, wfdb, neurokit2, captum (non planifié en v1, D-17), cryptography, rfc8785, httpx, structlog ; outillage : import-linter (contrôles d'architecture). Node : fabric-contract-api, fabric-shim, @hyperledger/fabric-gateway, @grpc/grpc-js, fastify, pino ; outillage Node : typescript, @types/node, reflect-metadata (décorateurs de fabric-contract-api), jest, eslint. Front : react, react-router, @tanstack/react-query, tailwindcss, plotly.js. Matériel : GHDL (≥ 3.0, VHDL-2008, GPL-2.0, outil uniquement), cocotb (BSD-3), cocotbext-axi (MIT), pyserial (BSD-3), AMD Vivado/Vitis (propriétaire, édition gratuite), fichiers de carte Digilent `[TBD: licence]`. Licences : MIT/BSD/Apache-2.0 (Fabric Apache-2.0). Versions épinglées (`uv.lock`, `package-lock.json`) ; `pip-audit` et `npm audit` en CI.
 
 ## 19. Estimation des coûts
 

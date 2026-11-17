@@ -2,7 +2,7 @@
 
 | Owner | Reviewers | Status | Version | Last updated | Suite version | PRD | TRD | Architecture | System Design | App Flow |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Équipe projet | Encadrant `[TBD: nom, Q-12]` | In review | 2.0.1 | 2026-10-23 | 2.0.1 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [03-architecture.md](03-architecture.md) | [05-system-design.md](05-system-design.md) | [06-app-flow.md](06-app-flow.md) |
+| Équipe projet | Encadrant `[TBD: nom, Q-12]` | In review | 2.0.3 | 2026-11-09 | 2.1.4 | [01-prd.md](01-prd.md) | [02-trd.md](02-trd.md) | [03-architecture.md](03-architecture.md) | [05-system-design.md](05-system-design.md) | [06-app-flow.md](06-app-flow.md) |
 
 DDL : [schema.sql](schema.sql) — **exécuté** le 2026-10-05 sur PostgreSQL 16.2 (0 erreur, 13 tables) + 8 tests de contraintes négatifs passés.
 
