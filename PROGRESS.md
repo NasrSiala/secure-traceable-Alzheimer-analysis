@@ -6,6 +6,7 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 
 - **État Backend au 2026-11-17 :** T1.1 réalisée dans le commit `9ed84e2`. Intégration de `origin/main` (`f44baf1`, 25 commits) dans `backend` vérifiée localement. Les mentions de PR non fusionnées du 9–15 novembre ci-dessous sont historiques : les PR #1 à #7 sont maintenant présentes dans `origin/main`.
 - **Tâche suivante B :** T1.2 CI ; ensuite T1.5 Docker, T1.10 simulation et T1.11 contrôles d'architecture selon leurs dépendances.
+- **Livraison Backend :** fusion `b4cb6d4` publiée sur `backend` ; [PR #10](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/pull/10) en brouillon pour T1.1. CI à préparer dans T1.2 ; revue d'un autre membre avant intégration à main.
 - **Jalon :** M1 — échéance 2026-10-28 dépassée ; porte M2 du 2026-11-03 non approuvée. Plan conservé tel quel, risque de calendrier accepté (D-18).
 - **Équipe :** L = Nasr Siala ; I, B, F à nommer (A-02.3).
 - **Plan de L :** [docs/specs/08-implementation-plan-L.md](docs/specs/08-implementation-plan-L.md) ; `l01-fabric-network` et `l02-agent-identities` sont poussés (l02 part de la branche l01, dont la merge request n'est pas fusionnée). `l03-latency-baseline`, `l04-chaincode-create-get`, `l05-gateway-artifact-routes`, `l06-chaincode-provenance-rules` et `l07-chaincode-model-registry` sont commités et poussés (chaque branche part de la précédente, dont la merge request n'est pas fusionnée).
