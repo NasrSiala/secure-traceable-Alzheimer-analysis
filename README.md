@@ -401,6 +401,53 @@ Les 44 tests couvrent les 36 cases de la matrice, les JWT réels pour les trois
 rôles, les requêtes anonymes, les faux headers de rôle, la rétrogradation et
 la désactivation après émission du JWT, OpenAPI et les routes sans règle.
 
+## Client Python de la passerelle — T2.7
+
+`saam.ledger.LedgerClient` expose l'interface synchrone IF-07 :
+`create_record`, `get_record`, `get_case_history`, `register_model`, `get_model`.
+Les domaines peuvent dépendre du protocole `Ledger` pour remplacer le transport.
+La gateway reste seule à détenir les clés Fabric.
+
+```python
+from saam.ledger import LedgerClient, RecordNotFound
+
+# Charger LEDGER_GATEWAY_URL et le jeton de cette identité dans l'environnement.
+with LedgerClient.from_environment("verifier") as ledger:
+    try:
+        record = ledger.get_record("11111111-1111-4111-8111-111111111111")
+    except RecordNotFound:
+        record = None
+```
+
+Une instance porte un seul jeton `X-Agent-Token`. `from_environment` accepte
+les sept noms d'agents courts, `verifier` et `model-admin`. Il lit le jeton
+`AGENT_TOKEN_*` correspondant, ou cette seule identité dans `AGENT_TOKEN_FILE`.
+Pour un appel depuis l'hôte, renseigner une URL de gateway accessible depuis
+l'hôte ; `http://ledger-gateway:8080` est le défaut du réseau Docker interne.
+
+Le délai HTTPX est de 10 s par opération réseau. Chaque méthode fait une seule
+tentative : les reprises 1/2/4 s appartiennent à T3.3. Les redirections et les
+proxies d'environnement sont désactivés. Les refus deviennent `LedgerForbidden`
+(401/403), `RecordNotFound` (404), `DuplicateRecord` (409), `InvalidRecord`
+(400/422) ou `LedgerUnavailable` (502, transport ou réponse invalide). Les
+exceptions conservent `status`/`code` et un message français sans corps brut.
+
+```powershell
+uv run --locked pytest tests/ledger -q
+```
+
+Les tests démarrent l'application Fastify réelle sur loopback, avec un
+adaptateur Fabric en mémoire, et vérifient création/lecture, les identités,
+le schéma fermé et les refus. Ils requièrent Node et les dépendances Node
+verrouillées. Les cinq contrats Python sont aussi vérifiés par transport HTTP
+contrôlé, dont les réponses invalides, délais, redirections et chemins injectés.
+
+**Limite T2.6 :** les routes HTTP d'historique et de modèles ne sont pas encore
+implémentées dans la gateway de L. Les trois méthodes clientes sont prêtes,
+mais leurs tests HTTP contre cette gateway restent à compléter après
+`l08-gateway-history-model-routes`. Ces tests n'impliquent aucune transaction
+sur le réseau Fabric réel.
+
 ## Source des données
 
 Utiliser uniquement les données publiques
