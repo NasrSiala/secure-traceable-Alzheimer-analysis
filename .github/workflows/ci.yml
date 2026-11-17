@@ -87,6 +87,11 @@ jobs:
           npm run lint --prefix chaincode/provenance
           npm run lint --prefix ledger-gateway
 
+      - name: Vérifier les frontières et les privilèges
+        run: |
+          uv run --locked lint-imports --no-cache
+          uv run --locked pytest tests/arch tests/db/test_grants.py -q
+
       - name: Tester Python et TypeScript
         run: bash scripts/test-l.sh
 

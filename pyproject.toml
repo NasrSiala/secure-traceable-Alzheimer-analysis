@@ -14,6 +14,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "cocotb==2.0.1",
+    "import-linter>=2.2,<3",
     "mypy>=1.13,<2",
     "pre-commit>=4,<5",
     "pytest>=8,<10",
@@ -23,6 +24,39 @@ dev = [
 [tool.uv]
 # Monorepo exécuté depuis sa racine ; aucun paquet à publier.
 package = false
+
+[tool.importlinter]
+root_packages = ["saam"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+id = "layers"
+name = "Points d'entrée, domaines et bibliothèques (Architecture §6)"
+type = "layers"
+containers = ["saam"]
+layers = [
+    "api : pipeline",
+    "identity : cases : registry : traceability : verification : audit",
+    "hashing | dsp | ledger | storage",
+]
+exhaustive = true
+
+[[tool.importlinter.contracts]]
+id = "api-pipeline"
+name = "L'API ne lance pas le pipeline"
+type = "forbidden"
+source_modules = ["saam.api"]
+forbidden_modules = ["saam.pipeline"]
+# §8 autorise seulement l'interface de lecture des journaux, à venir avec T3.5.
+ignore_imports = ["saam.api.** -> saam.pipeline.logs"]
+unmatched_ignore_imports_alerting = "none"
+
+[[tool.importlinter.contracts]]
+id = "hardware-isolation"
+name = "Backend sans carte ni SDK Fabric direct (ADR-16)"
+type = "forbidden"
+source_modules = ["saam"]
+forbidden_modules = ["hw", "serial", "pyserial", "hfc", "grpc", "fabric_sdk_py"]
 
 [tool.ruff]
 target-version = "py311"

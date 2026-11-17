@@ -77,7 +77,8 @@ uv run --locked pytest -q
 
 La suite complète de L (Python et TypeScript) est `bash scripts/test-l.sh`,
 avec Git Bash et Node disponibles. Les options `--fabric` et `--board` demandent
-respectivement le réseau Docker et la carte ; les tests locaux n'en ont pas besoin.
+respectivement le réseau Fabric et la carte. Docker est requis par les tests
+PostgreSQL isolés de T1.11 et peut aussi fournir Node et GHDL sous Windows.
 
 La passerelle écoute par défaut sur le port 8080. Ses jetons sont lus dans
 le fichier JSON `AGENT_TOKEN_FILE` ; la configuration et les identités sont
@@ -137,7 +138,8 @@ retirée. Le blocage effectif d'une PR rouge reste à vérifier après activatio
 la protection. La PR #10 reste en brouillon pour la revue de l'équipe ; le compte
 Backend n'a pas les droits administrateur.
 
-Les contrôles d'architecture et la simulation relèvent de T1.11 et T1.10.
+Les contrôles d'architecture T1.11 et la simulation T1.10 font aussi partie de
+`validation`.
 
 ## Pile locale (T1.5)
 
@@ -242,6 +244,44 @@ Il vérifie le fonctionnement des outils. Les cœurs SHA-256/FIR et leur compara
 aux oracles Python restent T3.18/T3.19 ; les cibles `TEST=sha256`, `fir` et `axi`
 seront ajoutées avec ces travaux. Une cible encore inconnue échoue explicitement.
 Les sorties `sim_build/`, `results.xml` et les traces restent exclues de Git.
+
+## Contrôles d'architecture — T1.11
+
+```powershell
+uv run --locked lint-imports --no-cache
+uv run --locked pytest tests/arch tests/db/test_grants.py -q
+```
+
+Les contrats import-linter contrôlent les couches Python et interdisent les
+imports de l'API vers le pipeline, ainsi que les imports du backend vers les
+outils matériels et les SDK Fabric directs. Les tests AST précisent les
+dépendances autorisées par l'Architecture §5–§8 et refusent les imports directs
+des modèles d'un autre domaine. L'exception explicite de §8 autorise la future
+interface `saam.pipeline.logs.list_for_case`, en lecture seule ; le module de
+logs ne doit pas importer le pipeline d'exécution. La bibliothèque `storage`
+reste privée à `traceability`, conformément à T3.2.
+
+Les contrôles de propriété couvrent les 13 tables canoniques et les checkpoints
+du schéma `langgraph`. Ils analysent les requêtes SQL littérales, les constantes
+et concaténations résolubles exécutées par `execute`/`executemany`, ainsi que les
+déclarations `__tablename__`. Les noms de tables dynamiques non résolubles sont
+refusés. Les expressions ORM devront recevoir leur contrôle de liaison aux
+modèles lors de leur introduction. Les futurs bancs SHA-256/FIR doivent importer
+et appeler les oracles `saam.hashing` et `saam.dsp.fir_fixed`.
+
+Le test des grants démarre un PostgreSQL 16.15 temporaire, applique
+`docs/specs/schema.sql` sans le modifier, puis contrôle les droits des tables,
+colonnes, séquences, schémas et rôles. Des commandes `SET LOCAL ROLE` vérifient
+aussi les autorisations et refus réels, avec le code PostgreSQL `42501` attendu.
+Les transactions sont annulées ; aucun cas n'est créé. Le conteneur n'expose
+aucun port, utilise `--network=none` et stocke ses données en tmpfs. Seul ce
+conteneur est retiré après le test. Docker doit fonctionner ; la première
+exécution télécharge l'image épinglée par digest.
+
+Ces tests vérifient le schéma de référence. La conformité des migrations et de
+la base applicative sera vérifiée en T2.1. Une copie temporaire du paquet permet
+de tester qu'import-linter refuse les imports interdits et accepte l'interface
+de lecture des logs, sans modifier le code applicatif.
 
 ## Données
 
