@@ -290,7 +290,12 @@ La preuve GitHub sur la PR #10 comprend un
 (`61ec051`) : l'import `saam.api.architecture_probe` → `saam.pipeline` rend le
 contrat BROKEN et `validation` échoue avec exit 1, après les lints verts.
 La sonde est retirée ; le code applicatif retrouve exactement celui du vert
-initial. Le retour final est suivi sur la PR #10. Aucun test n'est affaibli.
+initial. Le
+[retour au vert sur la PR](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/44160056234)
+et le
+[push restauré vert](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/44160043940)
+(`700aeb9`) confirment les trois contrats, les 62 tests ciblés, la régression
+complète et les six builds Docker. Aucun test n'est affaibli.
 
 ## Données
 
