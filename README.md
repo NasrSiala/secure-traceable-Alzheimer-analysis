@@ -211,6 +211,38 @@ docker compose stop
 Les étapes Backend sont testées et poussées successivement sur `backend` ; la
 fusion commune est prévue une fois les étapes terminées et relues par l'équipe.
 
+## Simulation matérielle — T1.10
+
+Le job GitHub Actions `hw-sim` exécute GHDL et cocotb à chaque push et PR.
+La suite `validation` lance également la simulation : une assertion matérielle
+en échec rend ce contrôle rouge, même si les tests Python et TypeScript passent.
+La protection de `main` décrite plus haut reste à activer avant la fusion finale.
+
+Sous Linux, installer Make et GHDL ≥ 3, puis utiliser l'environnement verrouillé :
+
+```bash
+uv sync --locked
+make -C hw/sim
+```
+
+Sous Windows, le lanceur utilise Docker lorsque Make/GHDL sont absents :
+
+```powershell
+bash scripts/test-hw.sh
+```
+
+L'image de simulation contient uniquement les modules Python et le banc ; elle
+ne monte aucun wallet ni carte et n'expose aucun port. Son exécution est sans
+réseau. La construction initiale télécharge Ubuntu, GHDL et Python 3.11.
+`scripts/test-l.sh` choisit automatiquement ce même lanceur pour sa simulation.
+
+Le banc `smoke` teste un registre VHDL-2008 de huit bits : capture des 256 octets,
+maintien de la sortie entre les fronts et remise à zéro asynchrone `aresetn`.
+Il vérifie le fonctionnement des outils. Les cœurs SHA-256/FIR et leur comparaison
+aux oracles Python restent T3.18/T3.19 ; les cibles `TEST=sha256`, `fir` et `axi`
+seront ajoutées avec ces travaux. Une cible encore inconnue échoue explicitement.
+Les sorties `sim_build/`, `results.xml` et les traces restent exclues de Git.
+
 ## Données
 
 Utiliser uniquement les données publiques

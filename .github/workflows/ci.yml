@@ -14,6 +14,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  hw-sim:
+    name: hw-sim
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer GHDL et Make
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghdl make
+          ghdl --version
+
+      - name: Installer uv et Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.8'
+          python-version: '3.11'
+          enable-cache: true
+
+      - name: Installer les dépendances verrouillées
+        run: uv sync --locked
+
+      - name: Simuler le VHDL avec cocotb
+        run: uv run --locked make -C hw/sim
+
   validation:
     name: validation
     runs-on: ubuntu-24.04
@@ -43,6 +70,11 @@ jobs:
           uv sync --locked
           npm ci --ignore-scripts --prefix chaincode/provenance
           npm ci --ignore-scripts --prefix ledger-gateway
+
+      - name: Installer GHDL et Make pour la suite complète
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghdl make
 
       - name: Vérifier le code Python
         run: |
