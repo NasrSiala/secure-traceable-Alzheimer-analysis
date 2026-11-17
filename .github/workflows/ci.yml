@@ -59,7 +59,8 @@ jobs:
         run: bash scripts/test-l.sh
 
       - name: Sonde temporaire T1.2 — échec attendu
-        run: uv run --locked python -c "assert False, 'Sonde T1.2 : le controle validation doit etre rouge'"
+        run: |
+          uv run --locked python -c "assert False, 'Sonde T1.2 : le controle validation doit etre rouge'"
 
       - name: Construire les images sans publication
         env:
