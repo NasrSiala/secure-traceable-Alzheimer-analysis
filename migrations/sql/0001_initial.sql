@@ -279,4 +279,3 @@ GRANT UPDATE (anchor_status, anchor_attempts, tx_id, anchored_at)
 GRANT INSERT                 ON artifact_files, agent_logs,
                                 audit_events                        TO app_worker;
 GRANT INSERT, UPDATE         ON models                              TO app_worker; -- scripts/register_model.py
-
