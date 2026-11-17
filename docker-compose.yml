@@ -26,6 +26,8 @@ services:
       target: api
     environment:
       DATABASE_URL_API: ${DATABASE_URL_API:?Connexion app_api requise}
+      JWT_SECRET: ${JWT_SECRET:-}
+      AUTH_ORIGIN: ${AUTH_ORIGIN:-https://localhost}
       LEDGER_GATEWAY_URL: http://ledger-gateway:8080
       AGENT_TOKEN_VERIFIER: ${AGENT_TOKEN_VERIFIER:?Jeton verifier requis}
       WORKER_STATUS_FILE: /run/saam/worker.json

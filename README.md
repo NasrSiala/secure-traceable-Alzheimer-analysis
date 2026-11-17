@@ -343,6 +343,42 @@ Le modèle sera enregistré par T3.9, après son entraînement, sans modèle fac
 
 ## Attribution des données
 
+## Authentification — T2.3
+
+Configurer `JWT_SECRET` (au moins 32 octets de secret aléatoire) dans `.env`.
+`prepare-stack.py` le génère pour les nouvelles configurations ; les fichiers
+existants sont conservés. Après migration et seed, les routes sont :
+
+- `POST /api/v1/auth/login` : JSON `email`, `password` ; réponse avec
+  `access_token`, `token_type`, `expires_in=1800` et profil `user`.
+- `POST /api/v1/auth/refresh` : authentification par le cookie de session,
+  même après expiration du JWT ; émet un nouveau JWT et remplace le refresh.
+- `POST /api/v1/auth/logout` : révoque le refresh courant, efface le cookie, 204.
+- `GET /api/v1/me` : `Authorization: Bearer <access_token>` ; rôle et activation
+  relus en base à chaque demande.
+
+Le JWT utilise HS256, un issuer/audience fixes et une expiration de 30 minutes.
+Le refresh opaque expire huit heures après la connexion initiale et reste en
+cookie `saam_refresh`, `HttpOnly; Secure; SameSite=Strict`, limité à
+`/api/v1/auth`. Seul son SHA-256 est stocké ; cette empreinte de secret opaque
+est distincte du contrat de hachage des artefacts. La rotation est atomique,
+à usage unique, sans prolongation des huit heures. La déconnexion révoque le
+refresh ; un JWT déjà émis reste limité par son expiration de 30 minutes.
+
+Cinq échecs en quinze minutes verrouillent le compte pour quinze minutes :
+la cinquième tentative renvoie 401, la sixième 423. Les tentatives restent
+enregistrées malgré le refus HTTP. La limite de dix connexions/minute/IP est
+renforcée en PostgreSQL et partagée par les workers. nginx remplace le header
+transmis `X-Forwarded-For` par l'adresse observée ; l'API reste sur le réseau
+Docker privé et accepte ces informations du proxy.
+
+Les requêtes de navigateur doivent provenir de `AUTH_ORIGIN` (défaut
+`https://localhost`) ; les origines étrangères sont refusées. Les erreurs
+suivent le format TRD et les messages français de l'App Flow. Ni les passwords
+ni les tokens soumis ne sont renvoyés dans les erreurs de validation.
+
+## Source des données
+
 Utiliser uniquement les données publiques
 [PTB-XL v1.0.3](https://physionet.org/content/ptb-xl/1.0.3/),
 sous licence CC BY 4.0 : Wagner et al., *PTB-XL, a large publicly available

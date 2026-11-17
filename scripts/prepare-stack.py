@@ -51,6 +51,7 @@ def prepare_environment(root: Path) -> dict[str, str]:
     if not target.exists():
         database = "saamstiahf"
         generated = {
+            "JWT_SECRET": secrets.token_hex(32),
             "POSTGRES_PASSWORD": secrets.token_hex(32),
             "APP_API_PASSWORD": secrets.token_hex(32),
             "APP_WORKER_PASSWORD": secrets.token_hex(32),

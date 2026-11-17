@@ -3,10 +3,14 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
+from saam.api.auth import register_auth
 from saam.api.health import HealthProbe, HealthResponse, SystemProbe
+from saam.identity.auth import IdentityService
 
 
-def create_app(probe: HealthProbe | None = None) -> FastAPI:
+def create_app(
+    probe: HealthProbe | None = None, identity: IdentityService | None = None
+) -> FastAPI:
     app = FastAPI(
         title="SAAMSTIAHF",
         version="0.1.0",
@@ -29,6 +33,9 @@ def create_app(probe: HealthProbe | None = None) -> FastAPI:
             headers={"Cache-Control": "no-store"},
         )
 
+    register_auth(
+        app, identity if identity is not None else IdentityService.from_environment()
+    )
     return app
 
 
