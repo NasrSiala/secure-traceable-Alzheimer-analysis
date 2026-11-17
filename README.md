@@ -121,10 +121,13 @@ Add branch protection rule**, cibler `main`, puis activer :
 
 Conserver les pushes forcés et suppressions de branche désactivés. Une CI rouge
 ne bloque effectivement la fusion que lorsque cette règle est active.
-La vérification finale consiste à constater qu'une assertion volontairement
-fausse rend `validation` rouge et bloque la PR, puis à retirer uniquement
-cette assertion et à obtenir une CI verte. La PR #10 reste en brouillon pour
-la revue de l'équipe ; le compte Backend n'a pas les droits administrateur.
+La [CI normale](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/43998434040)
+a passé tous les contrôles et les builds. Une
+[sonde temporaire](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/43999103520)
+a confirmé qu'une assertion fausse rend `validation` rouge ; elle a ensuite été
+retirée. Le blocage effectif d'une PR rouge reste à vérifier après activation de
+la protection. La PR #10 reste en brouillon pour la revue de l'équipe ; le compte
+Backend n'a pas les droits administrateur.
 
 Les contrôles d'architecture et la simulation relèvent de T1.11 et T1.10.
 
