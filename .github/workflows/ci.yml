@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, backend]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validation:
+    name: validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+          cache: npm
+          cache-dependency-path: |
+            chaincode/provenance/package-lock.json
+            ledger-gateway/package-lock.json
+
+      - name: Installer uv et Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.8'
+          python-version: '3.11'
+          enable-cache: true
+
+      - name: Installer les dépendances verrouillées
+        run: |
+          uv sync --locked
+          npm ci --ignore-scripts --prefix chaincode/provenance
+          npm ci --ignore-scripts --prefix ledger-gateway
+
+      - name: Vérifier le code Python
+        run: |
+          uv run --locked ruff check .
+          uv run --locked ruff format --check .
+          uv run --locked mypy saam
+
+      - name: Vérifier le code TypeScript
+        run: |
+          npm run lint --prefix chaincode/provenance
+          npm run lint --prefix ledger-gateway
+
+      - name: Tester Python et TypeScript
+        run: bash scripts/test-l.sh
+
+      - name: Construire les images sans publication
+        env:
+          DOCKER_BUILDKIT: '1'
+        run: |
+          docker build --target backend-base --tag saam-backend-base:${GITHUB_SHA} .
+          docker build --target ledger-gateway --tag saam-ledger-gateway:${GITHUB_SHA} .
+          docker build --target chaincode --tag saam-chaincode:${GITHUB_SHA} .

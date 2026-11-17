@@ -79,8 +79,54 @@ La passerelle écoute par défaut sur le port 8080. Ses jetons sont lus dans
 le fichier JSON `AGENT_TOKEN_FILE` ; la configuration et les identités sont
 décrites dans `ledger-gateway/.env.example`.
 
-La suite prévue est T1.2 (CI), puis T1.5 (pile Docker), selon les dépendances
-du plan. Les contrôles d'architecture et la simulation relèvent de T1.11 et T1.10.
+## Intégration continue (T1.2)
+
+Le workflow [CI](.github/workflows/ci.yml) s'exécute sur les pushes vers `backend`
+et `main`, ainsi que sur chaque pull request vers `main`. Le contrôle GitHub
+`validation` vérifie Ruff, Mypy, ESLint et TypeScript, lance les tests locaux
+Python et Jest, puis construit les images Docker sans les publier.
+Il utilise Python 3.11, uv 0.13.8 et Node 20.20.2 avec les fichiers de verrouillage.
+
+Pour préparer les paquets Node et reproduire leur lint depuis la racine :
+
+```powershell
+npm ci --ignore-scripts --prefix chaincode/provenance
+npm ci --ignore-scripts --prefix ledger-gateway
+npm run lint --prefix chaincode/provenance
+npm run lint --prefix ledger-gateway
+```
+
+Avec Docker démarré, construire les trois cibles :
+
+```powershell
+docker build --target backend-base --tag saam-backend-base:local .
+docker build --target ledger-gateway --tag saam-ledger-gateway:local .
+docker build --target chaincode --tag saam-chaincode:local .
+```
+
+`backend-base` fournit l'environnement Python du squelette. La passerelle et
+le chaincode compilent leur TypeScript dans une étape séparée, puis tournent
+avec les seules dépendances de production et l'utilisateur `node`.
+Leur démarrage nécessite les identités et la configuration Fabric décrites
+dans `ledger-gateway/.env.example` et `chaincode/provenance/package.json`.
+La pile API/worker, Compose et `/health` seront fournis par T1.5.
+
+Pour terminer T1.2, un administrateur doit ouvrir **Settings → Branches →
+Add branch protection rule**, cibler `main`, puis activer :
+
+- **Require a pull request before merging**, avec une approbation requise ;
+- **Require status checks to pass before merging**, avec le contrôle `validation` ;
+- **Require branches to be up to date before merging** ;
+- **Do not allow bypassing the above settings**.
+
+Conserver les pushes forcés et suppressions de branche désactivés. Une CI rouge
+ne bloque effectivement la fusion que lorsque cette règle est active.
+La vérification finale consiste à constater qu'une assertion volontairement
+fausse rend `validation` rouge et bloque la PR, puis à retirer uniquement
+cette assertion et à obtenir une CI verte. La PR #10 reste en brouillon pour
+la revue de l'équipe ; le compte Backend n'a pas les droits administrateur.
+
+Les contrôles d'architecture et la simulation relèvent de T1.11 et T1.10.
 
 ## Données
 
