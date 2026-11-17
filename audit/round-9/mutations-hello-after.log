@@ -1,0 +1,13 @@
+H1  killed    921600 baud becomes 9216000  [1 failed, 99 passed, 11 deselected in 12.76s]
+H2  killed    any baud rate is accepted  [1 failed, 101 passed, 11 deselected in 13.08s]
+H3  killed    nine hex digits are accepted  [1 failed, 88 passed, 11 deselected in 12.79s]
+H4  killed    the echo limit is doubled  [1 failed, 110 passed, 11 deselected in 13.13s]
+H5  killed    no empty line before DONE  [1 failed, 107 passed, 11 deselected in 12.59s]
+H6  killed    the write goes to the next register  [1 failed, 78 passed, 11 deselected in 12.42s]
+H7  killed    upper-case hex in the reply  [1 failed, 78 passed, 11 deselected in 12.59s]
+H8  killed    CR is no longer ignored  [1 failed, 97 passed, 11 deselected in 12.85s]
+H9  killed    the baud rate changes without waiting for the reply to leave  [1 failed, 99 passed, 11 deselected in 12.88s]
+H10  killed    register base address  [1 failed, 4 passed, 11 deselected in 0.79s]
+H11  killed    banner of the H command  [1 failed, 76 passed, 11 deselected in 13.62s]
+H12  killed    a line that is too long is no longer reported  [1 failed, 41 passed, 11 deselected in 3.53s]
+survivors: none
