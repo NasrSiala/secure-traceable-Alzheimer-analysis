@@ -283,6 +283,15 @@ la base applicative sera vérifiée en T2.1. Une copie temporaire du paquet perm
 de tester qu'import-linter refuse les imports interdits et accepte l'interface
 de lecture des logs, sans modifier le code applicatif.
 
+La preuve GitHub sur la PR #10 comprend un
+[vert initial](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/44158596871)
+(`1615333`), puis une
+[sonde rouge](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/44159412733)
+(`61ec051`) : l'import `saam.api.architecture_probe` → `saam.pipeline` rend le
+contrat BROKEN et `validation` échoue avec exit 1, après les lints verts.
+La sonde est retirée ; le code applicatif retrouve exactement celui du vert
+initial. Le retour final est suivi sur la PR #10. Aucun test n'est affaibli.
+
 ## Données
 
 Utiliser uniquement les données publiques
