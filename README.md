@@ -319,7 +319,29 @@ En démo, utiliser la restauration de sauvegarde. Les tests utilisent un
 PostgreSQL jetable publié uniquement sur un port localhost aléatoire, avec
 données en tmpfs ; aucun volume de la pile applicative n'est modifié.
 
-## Données publiques
+## Initialisation — T2.2
+
+Après la migration, renseigner localement les six variables `SEED_*_EMAIL` et
+`SEED_*_PASSWORD` de `.env`, puis exécuter :
+
+```powershell
+uv run --locked python scripts/seed.py
+uv run --locked python scripts/seed.py
+```
+
+Le script utilise `DATABASE_URL_API` et le rôle `app_api`, sans privilège
+administrateur. Il crée un admin, un operator et un auditor avec mots de passe
+Argon2id (12 caractères minimum), puis la configuration v1 : seuil 0,700,
+qualité 0,900 et lexique `v1`. Les variables d'environnement priment sur le
+fichier `.env` ; `--env-file` permet d'utiliser un autre fichier privé.
+
+Les deux exécutions conservent les mêmes identifiants et hashes. Les comptes
+existants ne sont ni réactivés ni réinitialisés ; une configuration ultérieure
+active reste active. Un rôle incompatible ou une configuration v1 différente
+annule la transaction entière. Les mots de passe ne sont jamais affichés.
+Le modèle sera enregistré par T3.9, après son entraînement, sans modèle factice.
+
+## Attribution des données
 
 Utiliser uniquement les données publiques
 [PTB-XL v1.0.3](https://physionet.org/content/ptb-xl/1.0.3/),
