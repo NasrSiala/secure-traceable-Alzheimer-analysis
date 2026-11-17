@@ -9,7 +9,7 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/python
 ENV PATH="/opt/venv/bin:${PATH}"
 WORKDIR /workspace
 COPY pyproject.toml uv.lock README.md ./
-RUN uv sync --locked --python 3.11
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --python 3.11
 COPY saam ./saam
 COPY hw/sim ./hw/sim
 CMD ["make", "-C", "hw/sim"]

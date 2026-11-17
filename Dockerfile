@@ -12,6 +12,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-dev
 COPY saam ./saam
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 RUN python -m compileall -q saam
 RUN groupadd --gid 1000 saam && useradd --uid 1000 --gid saam --no-create-home saam \
     && mkdir -p /run/saam /data/artifacts \

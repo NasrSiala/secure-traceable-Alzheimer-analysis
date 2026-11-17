@@ -297,7 +297,29 @@ et le
 (`700aeb9`) confirment les trois contrats, les 62 tests ciblés, la régression
 complète et les six builds Docker. Aucun test n'est affaibli.
 
-## Données
+## Migration initiale — T2.1
+
+La migration Alembic `0001_initial` contient un snapshot figé de `schema.sql`
+(13 tables, contraintes, index, enums, triggers et permissions). Le document
+canonique reste la référence indépendante des tests. Alembic gère une seule
+transaction, incluant sa table de version ; un échec annule toutes les créations.
+
+Configurer localement `DATABASE_URL_MIGRATIONS` avec un compte administrateur
+PostgreSQL, puis exécuter depuis la racine :
+
+```powershell
+uv run --locked alembic upgrade head
+uv run --locked pytest tests/db/test_migration.py -q
+```
+
+Cette connexion administrative n'est pas fournie aux processus API/worker.
+Le rollback `alembic downgrade -1` conserve les rôles et leurs secrets ; il
+refuse de supprimer par cascade des dépendances ajoutées hors migration.
+En démo, utiliser la restauration de sauvegarde. Les tests utilisent un
+PostgreSQL jetable publié uniquement sur un port localhost aléatoire, avec
+données en tmpfs ; aucun volume de la pile applicative n'est modifié.
+
+## Données publiques
 
 Utiliser uniquement les données publiques
 [PTB-XL v1.0.3](https://physionet.org/content/ptb-xl/1.0.3/),
