@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from pathlib import Path
 from subprocess import CompletedProcess
 
 
@@ -117,18 +118,56 @@ def test_node_image_comes_from_compose_and_is_pinned(
 
 
 def _select_pytest_with(
-    bash_run: Callable[..., CompletedProcess[str]], definitions: str
+    bash_run: Callable[..., CompletedProcess[str]],
+    definitions: str,
+    *,
+    uv_available: bool = False,
+    project_dir: Path | None = None,
 ) -> CompletedProcess[str]:
-    """Source test-l.sh, replace the interpreters by shell functions, call select_pytest."""
+    """Isolate each interpreter branch from the tools installed on the test host."""
+    command_probe = (
+        'command() { if [[ "$1 $2" == "-v uv" ]]; then '
+        f"return {0 if uv_available else 1}; "
+        'fi; builtin command "$@"; }; '
+    )
     return bash_run(
         [
             "-c",
             "source scripts/test-l.sh; "
+            + 'if [[ -n "${PYTEST_SELECTOR_DIR:-}" ]]; then '
+            + 'cd "$PYTEST_SELECTOR_DIR"; fi; '
+            + command_probe
             + definitions
             + 'select_pytest; echo "picked: ${PYTEST[*]}"',
         ],
+        env={"PYTEST_SELECTOR_DIR": project_dir.as_posix() if project_dir else ""},
         timeout=60,
     )
+
+
+def test_uv_is_preferred_when_the_project_and_uv_are_available(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    result = _select_pytest_with(
+        bash_run,
+        "python3() { return 1; }; python() { return 1; }; py() { return 1; }; ",
+        uv_available=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "picked: uv run pytest" in result.stdout
+
+
+def test_uv_without_a_project_falls_back_to_python3(
+    bash_run: Callable[..., CompletedProcess[str]], tmp_path: Path
+) -> None:
+    result = _select_pytest_with(
+        bash_run,
+        'python3() { [[ "$1" == -c ]]; }; python() { return 1; }; py() { return 1; }; ',
+        uv_available=True,
+        project_dir=tmp_path,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "picked: python3 -m pytest" in result.stdout
 
 
 def test_pytest_is_found_through_python3_alone(
