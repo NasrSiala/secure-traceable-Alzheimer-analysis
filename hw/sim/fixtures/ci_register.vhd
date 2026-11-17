@@ -18,7 +18,7 @@ begin
         if aresetn = '0' then
             q <= (others => '0');
         elsif rising_edge(clk) then
-            q <= d;
+            q <= not d;
         end if;
     end process;
 end architecture;
