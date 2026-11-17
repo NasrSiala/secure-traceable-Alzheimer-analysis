@@ -63,5 +63,8 @@ jobs:
           DOCKER_BUILDKIT: '1'
         run: |
           docker build --target backend-base --tag saam-backend-base:${GITHUB_SHA} .
+          docker build --target api --tag saam-api:${GITHUB_SHA} .
+          docker build --target worker --tag saam-worker:${GITHUB_SHA} .
           docker build --target ledger-gateway --tag saam-ledger-gateway:${GITHUB_SHA} .
           docker build --target chaincode --tag saam-chaincode:${GITHUB_SHA} .
+          docker build --target frontend --tag saam-frontend:${GITHUB_SHA} .

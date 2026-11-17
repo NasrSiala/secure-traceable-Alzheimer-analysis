@@ -1,0 +1,149 @@
+name: saam-stack
+
+services:
+  postgres:
+    image: postgres:16.15-alpine@sha256:0cefaabd882e42bcb2a2f3dc56d3ce4770560ba62fd7f197f1a2e008fd5731ab
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-saamstiahf}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Préparer .env avec scripts/prepare-stack.py}
+      APP_API_PASSWORD: ${APP_API_PASSWORD:?Mot de passe app_api requis}
+      APP_WORKER_PASSWORD: ${APP_WORKER_PASSWORD:?Mot de passe app_worker requis}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./deploy/init-postgres.sh:/docker-entrypoint-initdb.d/10-roles.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [backend]
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      target: api
+    environment:
+      DATABASE_URL_API: ${DATABASE_URL_API:?Connexion app_api requise}
+      LEDGER_GATEWAY_URL: http://ledger-gateway:8080
+      AGENT_TOKEN_VERIFIER: ${AGENT_TOKEN_VERIFIER:?Jeton verifier requis}
+      WORKER_STATUS_FILE: /run/saam/worker.json
+      FRONTEND_URL: http://frontend
+    volumes:
+      - worker-status:/run/saam:ro
+      - artifact-store:/data/artifacts:ro
+    depends_on:
+      postgres: {condition: service_healthy}
+      worker: {condition: service_started}
+      ledger-gateway: {condition: service_started}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=5)"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 20s
+    networks: [backend]
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment:
+      DATABASE_URL_WORKER: ${DATABASE_URL_WORKER:?Connexion app_worker requise}
+      WORKER_STATUS_FILE: /run/saam/worker.json
+      WORKER_CONCURRENCY: '1'
+    volumes:
+      - worker-status:/run/saam
+      - artifact-store:/data/artifacts
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import json,time,sys; d=json.load(open('/run/saam/worker.json')); sys.exit(0 if d['status']=='ok' and 0<=time.time()-d['timestamp']<=10 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks: [backend]
+    restart: unless-stopped
+
+  ledger-gateway:
+    build:
+      context: .
+      target: ledger-gateway
+    # Initialisation du tmpfs, puis exec Node sous uid 1000 (start-gateway.sh).
+    user: '0:0'
+    tmpfs:
+      - /run/ledger-wallet:mode=0700
+    environment:
+      AGENT_TOKEN_FILE: /run/secrets/agent-tokens.json
+      WALLET_SOURCE: /wallet-source
+      WALLET_DIR: /run/ledger-wallet
+      PEER_TLS_CERT: /run/ledger-wallet/peer0-org1-tls-ca.crt
+      PEER_ENDPOINT: saam-medtrace-peer0-org1:7051
+      CHANNEL_NAME: medtrace
+      CHAINCODE_NAME: provenance
+      GATEWAY_HOST: 0.0.0.0
+      GATEWAY_PORT: '8080'
+    volumes:
+      - type: bind
+        source: ./fabric/wallet
+        target: /wallet-source
+        read_only: true
+        bind: {create_host_path: false}
+    secrets:
+      - source: agent-tokens
+        target: agent-tokens.json
+    healthcheck:
+      test: [CMD, node, check-gateway.cjs]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 20s
+    networks: [backend, fabric]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      target: frontend
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-80}:80"
+      - "127.0.0.1:${HTTPS_PORT:-443}:443"
+    secrets:
+      - source: tls-certificate
+        target: localhost.crt
+      - source: tls-key
+        target: localhost.key
+    depends_on:
+      api: {condition: service_started}
+    healthcheck:
+      test: [CMD-SHELL, 'curl --fail --silent --insecure https://localhost/api/v1/health >/dev/null']
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 20s
+    networks: [backend, web]
+    restart: unless-stopped
+
+networks:
+  web:
+  backend:
+    internal: true
+  fabric:
+    name: saam-medtrace
+    external: true
+
+volumes:
+  postgres-data:
+  artifact-store:
+  worker-status:
+
+secrets:
+  agent-tokens:
+    file: ./secrets/agent-tokens.json
+  tls-certificate:
+    file: ./secrets/localhost.crt
+  tls-key:
+    file: ./secrets/localhost.key

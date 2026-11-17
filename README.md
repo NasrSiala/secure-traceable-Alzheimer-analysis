@@ -35,14 +35,18 @@ Les versions exactes des outils sont conservées dans `uv.lock`.
 Le fichier `.python-version` sélectionne Python 3.11 et `.venv/` contient
 l'environnement propre au projet.
 
-Pour préparer la configuration locale :
+Pour préparer la configuration et le certificat TLS locaux :
 
 ```powershell
-Copy-Item .env.example .env
+uv run --locked python scripts/prepare-stack.py
 ```
 
-Renseigner les secrets localement avant de lancer les futurs services.
-Le squelette ne charge pas encore ce fichier.
+Le script crée `.env`, les jetons de service et le certificat dans `secrets/`,
+sans afficher leurs valeurs. OpenSSL est nécessaire ; Git pour Windows le fournit.
+Une seconde exécution conserve les fichiers existants. Si `.env` existe mais est
+incomplet, le script indique les variables à renseigner sans le remplacer.
+Les clés JWT et `ARTIFACT_KEY` seront utilisées par les tâches d'authentification
+et de stockage ; elles ne sont pas nécessaires aux sondes de santé de T1.5.
 
 ## Structure
 
@@ -56,9 +60,9 @@ Le squelette ne charge pas encore ce fichier.
 - `scripts/` : outils d'administration et de démonstration.
 - `tests/` : emplacements des suites prévues dans le plan.
 
-T1.1 fournit les dossiers et les outils Backend. Les modules de `saam/`
-contiennent uniquement leur description. Les dépendances applicatives du TRD §18
-seront ajoutées à mesure que les tâches les utilisent.
+T1.1 fournit les dossiers et les outils Backend. T1.5 ajoute l'API de santé,
+le processus worker et le déploiement. Les dépendances applicatives du TRD §18
+sont ajoutées à mesure que les tâches les utilisent.
 
 La branche `backend` intègre désormais le travail de L présent dans `main` :
 scripts Fabric, chaincode, passerelle et leurs tests. Le formatage Python commun
@@ -84,7 +88,8 @@ décrites dans `ledger-gateway/.env.example`.
 Le workflow [CI](.github/workflows/ci.yml) s'exécute sur les pushes vers `backend`
 et `main`, ainsi que sur chaque pull request vers `main`. Le contrôle GitHub
 `validation` vérifie Ruff, Mypy, ESLint et TypeScript, lance les tests locaux
-Python et Jest, puis construit les images Docker sans les publier.
+Python et Jest, puis construit les images Docker sans les publier : base Python,
+API, worker, passerelle, chaincode et nginx.
 Il utilise Python 3.11, uv 0.13.8 et Node 20.20.2 avec les fichiers de verrouillage.
 
 Pour préparer les paquets Node et reproduire leur lint depuis la racine :
@@ -96,20 +101,23 @@ npm run lint --prefix chaincode/provenance
 npm run lint --prefix ledger-gateway
 ```
 
-Avec Docker démarré, construire les trois cibles :
+Avec Docker démarré, construire les cibles :
 
 ```powershell
 docker build --target backend-base --tag saam-backend-base:local .
+docker build --target api --tag saam-api:local .
+docker build --target worker --tag saam-worker:local .
 docker build --target ledger-gateway --tag saam-ledger-gateway:local .
 docker build --target chaincode --tag saam-chaincode:local .
+docker build --target frontend --tag saam-frontend:local .
 ```
 
-`backend-base` fournit l'environnement Python du squelette. La passerelle et
+`backend-base` fournit l'environnement Python des deux processus. La passerelle et
 le chaincode compilent leur TypeScript dans une étape séparée, puis tournent
 avec les seules dépendances de production et l'utilisateur `node`.
 Leur démarrage nécessite les identités et la configuration Fabric décrites
 dans `ledger-gateway/.env.example` et `chaincode/provenance/package.json`.
-La pile API/worker, Compose et `/health` seront fournis par T1.5.
+La pile complète est décrite ci-dessous.
 
 Pour terminer T1.2, un administrateur doit ouvrir **Settings → Branches →
 Add branch protection rule**, cibler `main`, puis activer :
@@ -130,6 +138,78 @@ la protection. La PR #10 reste en brouillon pour la revue de l'équipe ; le comp
 Backend n'a pas les droits administrateur.
 
 Les contrôles d'architecture et la simulation relèvent de T1.11 et T1.10.
+
+## Pile locale (T1.5)
+
+Le [Compose](docker-compose.yml) démarre cinq services : PostgreSQL 16, API FastAPI,
+worker, passerelle ledger et nginx. Seul nginx publie les ports 80/443 sur
+`127.0.0.1`. Le worker n'expose aucun port et seul `ledger-gateway` monte le wallet
+Fabric en lecture seule. API et worker utilisent les comptes `app_api` et
+`app_worker`, sans droits administrateur.
+
+Au démarrage de la passerelle, une courte initialisation privilégiée copie le
+wallet dans un tmpfs privé, puis lance Node sous uid 1000 sans capacités Linux.
+Les clés temporaires sont en mode 0600 ; les permissions du wallet hôte ne sont
+pas modifiées. Le réseau d'entrée de nginx permet la publication HTTPS, séparément
+du réseau interne des services Python et PostgreSQL.
+
+Pour le premier démarrage, avec un réseau Fabric de test neuf et vide :
+
+```powershell
+uv run --locked python scripts/prepare-stack.py
+bash fabric/network.sh start
+bash fabric/enroll-identities.sh
+docker compose up -d --build --wait --wait-timeout 180
+curl.exe --insecure --fail https://localhost/api/v1/health
+```
+
+Sous Linux, remplacer `curl.exe` par `curl`. Git Bash et Docker sont nécessaires
+aux commandes Fabric. `network.sh start` reconstruit un réseau qui n'est pas sain :
+pour un réseau existant à conserver, vérifier d'abord son état avec
+`bash fabric/network.sh status`, sans le réinitialiser. L'enrôlement doit fournir
+les neuf identités et le chaincode `provenance` avant de lancer la passerelle.
+
+Le certificat auto-signé couvre `localhost` et `127.0.0.1` pendant 30 jours.
+Les ports peuvent être changés avec `HTTP_PORT` et `HTTPS_PORT` dans `.env`.
+
+`GET /api/v1/health` est public. Il renvoie `200` avec `status: "ok"`, les cinq
+services, `version` et `model` si tout est disponible. Une panne renvoie `503`,
+`status: "degraded"` et le nom du service en erreur, sans détail de connexion.
+La sonde ledger effectue une lecture Fabric sans écriture : un artefact absent
+confirme que le chaincode répond ; un simple 404 de route ne suffit pas.
+L'état du worker vient d'un fichier de statut récent partagé en lecture seule
+avec l'API. OpenAPI est disponible sur `/api/v1/openapi.json`.
+
+T1.5 crée seulement les comptes PostgreSQL ; les tables et leurs privilèges
+applicatifs viendront avec la migration T2.1. `model` vaut donc `null` jusqu'à
+l'enregistrement et l'activation d'un modèle. Le worker surveille sa connexion
+à la base ; la prise de jobs et le graphe LangGraph sont T3.5. Le service
+`frontend` fournit le proxy TLS, prêt à servir le bundle React de F ; les écrans
+ne sont pas créés dans cette étape.
+
+Pour vérifier les pannes et le retour au vert sur la pile déjà démarrée :
+
+```powershell
+$env:SAAM_TEST_STACK = '1'
+uv run --locked pytest tests/integration/test_stack_health.py -q
+Remove-Item Env:SAAM_TEST_STACK
+uv run --locked python scripts/stack-status.py
+```
+
+Ces quatre tests arrêtent puis redémarrent uniquement `worker`, `ledger-gateway`
+et `postgres` du projet `saam-stack`. Le rapport mémoire est conservé dans
+`.tools/t15-stack-status.json`, ignoré par Git. Il mesure le socle et le réseau
+Fabric ; il faudra refaire la mesure quand le modèle PyTorch sera chargé.
+
+Pour arrêter les cinq services tout en conservant les volumes :
+
+```powershell
+docker compose stop
+```
+
+`docker compose start` les relance si le réseau Fabric est toujours disponible.
+Les étapes Backend sont testées et poussées successivement sur `backend` ; la
+fusion commune est prévue une fois les étapes terminées et relues par l'équipe.
 
 ## Données
 
