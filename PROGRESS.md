@@ -5,7 +5,7 @@ Suite de specs : v2.1.4 (2026-11-09). Mettre à jour à la fin de chaque tâche.
 ## Courant
 
 - **État Backend au 2026-11-17 :** T1.1 réalisée dans le commit `9ed84e2`. Intégration de `origin/main` (`f44baf1`, 25 commits) dans `backend` vérifiée localement. Les mentions de PR non fusionnées du 9–15 novembre ci-dessous sont historiques : les PR #1 à #7 sont maintenant présentes dans `origin/main`.
-- **Tâche courante B :** T1.2 — CI lint Python/TypeScript, tests et builds Docker implémentée ; validation GitHub et protection de `main` en attente. Ensuite T1.5 Docker, T1.10 simulation et T1.11 contrôles d'architecture selon leurs dépendances.
+- **Tâche courante B :** T1.2 — [CI verte sur la PR #10](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/actions/runs/43998434040), commit `332c947` ; sonde rouge temporaire en cours, puis retour au vert. Protection de `main` en attente administrateur. Ensuite T1.5 Docker, T1.10 simulation et T1.11 contrôles d'architecture selon leurs dépendances.
 - **Livraison Backend :** fusion `b4cb6d4` publiée sur `backend` ; [PR #10](https://github.com/NasrSiala/secure-traceable-Alzheimer-analysis/pull/10) en brouillon pour T1.1 + T1.2. Revue d'un autre membre avant intégration à main.
 - **Jalon :** M1 — échéance 2026-10-28 dépassée ; porte M2 du 2026-11-03 non approuvée. Plan conservé tel quel, risque de calendrier accepté (D-18).
 - **Équipe :** L = Nasr Siala ; I, B, F à nommer (A-02.3).
