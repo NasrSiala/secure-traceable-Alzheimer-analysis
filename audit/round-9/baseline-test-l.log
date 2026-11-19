@@ -1,0 +1,103 @@
+Running the local suite (fabric and board excluded).
+........................................................................ [ 16%]
+........................................................................ [ 33%]
+........................................................................ [ 49%]
+........................................ss.............................. [ 66%]
+........................................................................ [ 82%]
+..............s......................................................... [ 99%]
+..                                                                       [100%]
+431 passed, 3 skipped, 24 deselected in 39.11s
+
+> provenance@0.1.0 test
+> node node_modules/typescript/bin/tsc --noEmit && node -e "require('fs').rmSync('dist-test',{recursive:true,force:true})" && node node_modules/typescript/bin/tsc -p tsconfig.test.json && node node_modules/jest/bin/jest.js --runInBand
+
+PASS dist-test/test/model-registry.test.js
+  ● Console
+
+    console.log
+      2026-11-16T20:55:03.911Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> CreateArtifactRecord, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:03.933Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetArtifactRecord, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:03.934Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetCaseHistory, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:03.935Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> RegisterModel, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:03.936Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetModel, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:03.937Z [32minfo[39m [c-api:./lib/annotations/info.js]                   @Info args: "Info -> [object Object],","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+PASS dist-test/test/provenance.test.js
+  ● Console
+
+    console.log
+      2026-11-16T20:55:04.139Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> CreateArtifactRecord, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:04.147Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetArtifactRecord, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:04.148Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetCaseHistory, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:04.149Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> RegisterModel, Commit -> true,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:04.149Z [32minfo[39m [c-api:./lib/annotations/transaction.js]            @Transaction args: "Property Key -> GetModel, Commit -> false,","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+    console.log
+      2026-11-16T20:55:04.150Z [32minfo[39m [c-api:./lib/annotations/info.js]                   @Info args: "Info -> [object Object],","Target ->","Provenance"
+
+      at Console.log (node_modules/winston/lib/winston/transports/console.js:87:23)
+
+
+Test Suites: 2 passed, 2 total
+Tests:       183 passed, 183 total
+Snapshots:   0 total
+Time:        0.897 s, estimated 8 s
+Ran all test suites.
+
+> ledger-gateway@0.1.0 test
+> node node_modules/typescript/bin/tsc --noEmit && node -e "require('fs').rmSync('dist-test',{recursive:true,force:true})" && node node_modules/typescript/bin/tsc -p tsconfig.test.json && node node_modules/jest/bin/jest.js --runInBand
+
+PASS dist-test/test/routes.test.js
+PASS dist-test/test/ledger-session.test.js
+PASS dist-test/test/ledger-routes.test.js
+PASS dist-test/test/fabric-client.test.js
+PASS dist-test/test/tokens.test.js
+
+Test Suites: 5 passed, 5 total
+Tests:       212 passed, 212 total
+Snapshots:   0 total
+Time:        5.777 s, estimated 19 s
+Ran all test suites.
+...............................                                          [100%]
+31 passed, 11 deselected in 6.53s
+exit=0

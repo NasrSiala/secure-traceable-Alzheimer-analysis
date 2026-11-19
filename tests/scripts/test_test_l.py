@@ -193,3 +193,103 @@ def test_board_flag_runs_no_board_tests_and_does_not_open_a_device(
     assert result.returncode == 0
     assert "The board was not opened." in combined
     assert "board-access: no" in combined
+
+
+def test_the_local_suite_never_sees_the_board_port(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    """AUD-112: `SAAM_ZYBO_PORT=COM5 scripts/test-l.sh --board` runs the local suite first. A test
+    in it that calls this script would open the board; the local phase gets no port, the board
+    phase keeps it."""
+    probe = "PYTEST=(bash -c 'echo \"seen=[${SAAM_ZYBO_PORT-unset}]\"' _)"
+    result = bash_run(
+        [
+            "-c",
+            f"source scripts/test-l.sh; {probe}; run_pytest_local -q; run_pytest -q",
+        ],
+        env={"SAAM_ZYBO_PORT": "COM9"},
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.split() == ["seen=[unset]", "seen=[COM9]"]
+
+
+def test_run_local_hands_no_port_to_any_pytest_call(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    """AUD-112, end to end through run_local: every pytest call of the local phase (the tests and
+    the host-side tests of the hardware part) runs without the port."""
+    probe = "PYTEST=(bash -c 'echo \"seen=[${SAAM_ZYBO_PORT-unset}]\"' _)"
+    result = bash_run(
+        [
+            "-c",
+            (
+                "source scripts/test-l.sh; run_npm_test() { :; }; make() { :; }; "
+                f"{probe}; run_local"
+            ),
+        ],
+        env={"SAAM_ZYBO_PORT": "COM9"},
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stderr
+    seen = [line for line in result.stdout.split() if line.startswith("seen=")]
+    assert seen and set(seen) == {"seen=[unset]"}, result.stdout
+
+
+def _board_phase(
+    bash_run: Callable[..., CompletedProcess[str]], pytest_output: str, port: str
+) -> CompletedProcess[str]:
+    """Run only run_board, with a pytest that prints `pytest_output` and succeeds."""
+    probe = f"PYTEST=(bash -c 'echo \"{pytest_output}\"' _)"
+    return bash_run(
+        [
+            "-c",
+            f"source scripts/test-l.sh; {probe}; run_board && echo run_board-exit=0 || echo run_board-exit=$?",
+        ],
+        env={"SAAM_ZYBO_PORT": port},
+        timeout=60,
+    )
+
+
+def test_a_board_run_in_which_every_test_was_skipped_is_not_board_access(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    """AUD-113: the port is set but, for example, pyserial is missing: all 11 board tests skip and
+    pytest exits 0. The script must not say that the board was used."""
+    result = _board_phase(bash_run, "11 skipped, 489 deselected in 0.6s", "COM9")
+    combined = result.stdout + result.stderr
+    assert "no board test passed" in combined
+    assert "board-access: no" in combined
+    assert "board-access: tests-only" not in combined
+    assert "run_board-exit=4" in combined
+
+
+def test_a_board_run_in_which_a_test_passed_is_board_access(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    result = _board_phase(bash_run, "9 passed, 2 skipped, 489 deselected in 9s", "COM9")
+    combined = result.stdout + result.stderr
+    assert "board-access: tests-only" in combined
+    assert "run_board-exit=0" in combined
+
+
+def test_board_flag_without_a_port_says_why_the_board_tests_were_skipped(
+    bash_run: Callable[..., CompletedProcess[str]],
+) -> None:
+    """T1.9: board tests exist now; without SAAM_ZYBO_PORT they skip, and the script must not
+    claim a pass or any board access."""
+    result = bash_run(
+        ["scripts/test-l.sh", "--board"],
+        env={"SAAM_ZYBO_PORT": "", "SAAM_TEST_L_RUNNING": "1"},
+        timeout=180,
+    )
+    combined = result.stdout + result.stderr
+    assert result.returncode == 0, combined[-1500:]
+    assert "SAAM_ZYBO_PORT is not set" in combined
+    # The reason pytest gives for each skip (`-rs`), not only the script's own sentence.
+    assert "nothing was opened" in combined
+    assert "a skip is not a pass" in combined
+    assert "board-access: no" in combined
+    assert "board-access: tests-only" not in combined
+    assert "skipped" in combined
+    assert "passed" not in combined
