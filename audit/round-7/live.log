@@ -1,0 +1,445 @@
+=== bash fabric/network.sh start (start)
+Removing any leftover saam-medtrace resources
+Starting certificate authorities
+ Network saam-medtrace Creating 
+ Network saam-medtrace Creating 
+ Network saam-medtrace Created 
+ Network saam-medtrace Created 
+ Container saam-medtrace-ca-org2 Creating 
+ Container saam-medtrace-ca-orderer Creating 
+ Container saam-medtrace-ca-org1 Creating 
+ Container saam-medtrace-ca-orderer Created 
+ Container saam-medtrace-ca-org2 Created 
+ Container saam-medtrace-ca-org1 Created 
+ Container saam-medtrace-ca-orderer Starting 
+ Container saam-medtrace-ca-org1 Starting 
+ Container saam-medtrace-ca-org2 Starting 
+ Container saam-medtrace-ca-orderer Started 
+ Container saam-medtrace-ca-org1 Started 
+ Container saam-medtrace-ca-org2 Started 
+Enrolling network identities
+ Container saam-medtrace-ca-client-run-9c35e0deb6df Creating 
+ Container saam-medtrace-ca-client-run-9c35e0deb6df Created 
+Enrolling org1.example.com
+2026/11/16 04:08:33 [INFO] Created a default configuration file at /work/organizations/peerOrganizations/org1.example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:34 [INFO] TLS Enabled
+2026/11/16 04:08:34 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:34 [INFO] encoded CSR
+2026/11/16 04:08:34 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org1.example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:34 [INFO] Stored root CA certificate at /work/organizations/peerOrganizations/org1.example.com/msp/cacerts/ca-org1-7054-ca-org1.pem
+2026/11/16 04:08:34 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org1.example.com/msp/IssuerPublicKey
+2026/11/16 04:08:34 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org1.example.com/msp/IssuerRevocationPublicKey
+2026/11/16 04:08:34 [INFO] Configuration file location: /work/organizations/peerOrganizations/org1.example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:34 [INFO] TLS Enabled
+2026/11/16 04:08:34 [INFO] TLS Enabled
+2026/11/16 04:08:34 [INFO] Configuration file location: /work/organizations/peerOrganizations/org1.example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:34 [INFO] TLS Enabled
+2026/11/16 04:08:34 [INFO] TLS Enabled
+2026/11/16 04:08:35 [INFO] TLS Enabled
+2026/11/16 04:08:35 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:35 [INFO] encoded CSR
+2026/11/16 04:08:35 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:35 [INFO] Stored root CA certificate at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp/cacerts/ca-org1-7054-ca-org1.pem
+2026/11/16 04:08:35 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp/IssuerPublicKey
+2026/11/16 04:08:35 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/msp/IssuerRevocationPublicKey
+2026/11/16 04:08:35 [INFO] TLS Enabled
+2026/11/16 04:08:35 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:35 [INFO] encoded CSR
+2026/11/16 04:08:36 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/signcerts/cert.pem
+2026/11/16 04:08:36 [INFO] Stored TLS root CA certificate at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/tlscacerts/tls-ca-org1-7054-ca-org1.pem
+2026/11/16 04:08:36 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/IssuerPublicKey
+2026/11/16 04:08:36 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/IssuerRevocationPublicKey
+2026/11/16 04:08:36 [INFO] TLS Enabled
+2026/11/16 04:08:36 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:36 [INFO] encoded CSR
+2026/11/16 04:08:36 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:36 [INFO] Stored root CA certificate at /work/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/cacerts/ca-org1-7054-ca-org1.pem
+2026/11/16 04:08:36 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/IssuerPublicKey
+2026/11/16 04:08:37 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org1.example.com/users/Admin@org1.example.com/msp/IssuerRevocationPublicKey
+Enrolling org2.example.com
+2026/11/16 04:08:37 [INFO] Created a default configuration file at /work/organizations/peerOrganizations/org2.example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:37 [INFO] TLS Enabled
+2026/11/16 04:08:37 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:37 [INFO] encoded CSR
+2026/11/16 04:08:37 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org2.example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:37 [INFO] Stored root CA certificate at /work/organizations/peerOrganizations/org2.example.com/msp/cacerts/ca-org2-7054-ca-org2.pem
+2026/11/16 04:08:37 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org2.example.com/msp/IssuerPublicKey
+2026/11/16 04:08:37 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org2.example.com/msp/IssuerRevocationPublicKey
+2026/11/16 04:08:37 [INFO] Configuration file location: /work/organizations/peerOrganizations/org2.example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:37 [INFO] TLS Enabled
+2026/11/16 04:08:37 [INFO] TLS Enabled
+2026/11/16 04:08:37 [INFO] Configuration file location: /work/organizations/peerOrganizations/org2.example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:37 [INFO] TLS Enabled
+2026/11/16 04:08:38 [INFO] TLS Enabled
+2026/11/16 04:08:38 [INFO] TLS Enabled
+2026/11/16 04:08:38 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:38 [INFO] encoded CSR
+2026/11/16 04:08:38 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:38 [INFO] Stored root CA certificate at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp/cacerts/ca-org2-7054-ca-org2.pem
+2026/11/16 04:08:38 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp/IssuerPublicKey
+2026/11/16 04:08:38 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/msp/IssuerRevocationPublicKey
+2026/11/16 04:08:38 [INFO] TLS Enabled
+2026/11/16 04:08:38 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:38 [INFO] encoded CSR
+2026/11/16 04:08:38 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/signcerts/cert.pem
+2026/11/16 04:08:39 [INFO] Stored TLS root CA certificate at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/tlscacerts/tls-ca-org2-7054-ca-org2.pem
+2026/11/16 04:08:39 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/IssuerPublicKey
+2026/11/16 04:08:39 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/IssuerRevocationPublicKey
+2026/11/16 04:08:39 [INFO] TLS Enabled
+2026/11/16 04:08:39 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:39 [INFO] encoded CSR
+2026/11/16 04:08:39 [INFO] Stored client certificate at /work/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:39 [INFO] Stored root CA certificate at /work/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/cacerts/ca-org2-7054-ca-org2.pem
+2026/11/16 04:08:39 [INFO] Stored Issuer public key at /work/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/IssuerPublicKey
+2026/11/16 04:08:39 [INFO] Stored Issuer revocation public key at /work/organizations/peerOrganizations/org2.example.com/users/Admin@org2.example.com/msp/IssuerRevocationPublicKey
+Enrolling orderer organization
+2026/11/16 04:08:39 [INFO] Created a default configuration file at /work/organizations/ordererOrganizations/example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:39 [INFO] TLS Enabled
+2026/11/16 04:08:39 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:39 [INFO] encoded CSR
+2026/11/16 04:08:40 [INFO] Stored client certificate at /work/organizations/ordererOrganizations/example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:40 [INFO] Stored root CA certificate at /work/organizations/ordererOrganizations/example.com/msp/cacerts/ca-orderer-7054-ca-orderer.pem
+2026/11/16 04:08:40 [INFO] Stored Issuer public key at /work/organizations/ordererOrganizations/example.com/msp/IssuerPublicKey
+2026/11/16 04:08:40 [INFO] Stored Issuer revocation public key at /work/organizations/ordererOrganizations/example.com/msp/IssuerRevocationPublicKey
+2026/11/16 04:08:40 [INFO] Configuration file location: /work/organizations/ordererOrganizations/example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:40 [INFO] TLS Enabled
+2026/11/16 04:08:40 [INFO] TLS Enabled
+2026/11/16 04:08:41 [INFO] Configuration file location: /work/organizations/ordererOrganizations/example.com/fabric-ca-client-config.yaml
+2026/11/16 04:08:41 [INFO] TLS Enabled
+2026/11/16 04:08:41 [INFO] TLS Enabled
+2026/11/16 04:08:41 [INFO] TLS Enabled
+2026/11/16 04:08:41 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:41 [INFO] encoded CSR
+2026/11/16 04:08:41 [INFO] Stored client certificate at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:41 [INFO] Stored root CA certificate at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/cacerts/ca-orderer-7054-ca-orderer.pem
+2026/11/16 04:08:41 [INFO] Stored Issuer public key at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/IssuerPublicKey
+2026/11/16 04:08:41 [INFO] Stored Issuer revocation public key at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/IssuerRevocationPublicKey
+2026/11/16 04:08:41 [INFO] TLS Enabled
+2026/11/16 04:08:41 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:41 [INFO] encoded CSR
+2026/11/16 04:08:42 [INFO] Stored client certificate at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/signcerts/cert.pem
+2026/11/16 04:08:42 [INFO] Stored TLS root CA certificate at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/tlscacerts/tls-ca-orderer-7054-ca-orderer.pem
+2026/11/16 04:08:42 [INFO] Stored Issuer public key at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/IssuerPublicKey
+2026/11/16 04:08:42 [INFO] Stored Issuer revocation public key at /work/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls/IssuerRevocationPublicKey
+2026/11/16 04:08:42 [INFO] TLS Enabled
+2026/11/16 04:08:42 [INFO] generating key: &{A:ecdsa S:256}
+2026/11/16 04:08:42 [INFO] encoded CSR
+2026/11/16 04:08:43 [INFO] Stored client certificate at /work/organizations/ordererOrganizations/example.com/users/Admin@example.com/msp/signcerts/cert.pem
+2026/11/16 04:08:43 [INFO] Stored root CA certificate at /work/organizations/ordererOrganizations/example.com/users/Admin@example.com/msp/cacerts/ca-orderer-7054-ca-orderer.pem
+2026/11/16 04:08:43 [INFO] Stored Issuer public key at /work/organizations/ordererOrganizations/example.com/users/Admin@example.com/msp/IssuerPublicKey
+2026/11/16 04:08:43 [INFO] Stored Issuer revocation public key at /work/organizations/ordererOrganizations/example.com/users/Admin@example.com/msp/IssuerRevocationPublicKey
+Enrollment complete
+Creating channel medtrace
+ Container saam-medtrace-tools-run-10b8460914b7 Creating 
+ Container saam-medtrace-tools-run-10b8460914b7 Created 
+[34m2026-11-16 04:08:45.285 UTC 0001 INFO[0m [common.tools.configtxgen] [34;1mmain[0m -> Loading configuration
+[34m2026-11-16 04:08:45.297 UTC 0002 INFO[0m [common.tools.configtxgen.localconfig] [34;1mcompleteInitialization[0m -> orderer type: etcdraft
+[34m2026-11-16 04:08:45.297 UTC 0003 INFO[0m [common.tools.configtxgen.localconfig] [34;1mcompleteInitialization[0m -> Orderer.EtcdRaft.Options unset, setting to tick_interval:"500ms" election_tick:10 heartbeat_tick:1 max_inflight_blocks:5 snapshot_interval_size:16777216 
+[34m2026-11-16 04:08:45.297 UTC 0004 INFO[0m [common.tools.configtxgen.localconfig] [34;1mLoad[0m -> Loaded configuration: /work/config/configtx.yaml
+[34m2026-11-16 04:08:45.849 UTC 0005 INFO[0m [common.tools.configtxgen] [34;1mdoOutputBlock[0m -> Generating genesis block
+[34m2026-11-16 04:08:45.850 UTC 0006 INFO[0m [common.tools.configtxgen] [34;1mdoOutputBlock[0m -> Creating application channel genesis block
+[34m2026-11-16 04:08:45.851 UTC 0007 INFO[0m [common.tools.configtxgen] [34;1mdoOutputBlock[0m -> Writing genesis block
+Starting orderer and peers
+ Volume saam-medtrace-orderer-ledger Creating 
+ Volume saam-medtrace-orderer-ledger Creating 
+ Volume saam-medtrace-peer0-org1-ledger Creating 
+ Volume saam-medtrace-peer0-org1-ledger Creating 
+ Volume saam-medtrace-peer0-org2-ledger Creating 
+ Volume saam-medtrace-peer0-org2-ledger Creating 
+ Volume saam-medtrace-orderer-ledger Created 
+ Volume saam-medtrace-orderer-ledger Created 
+ Container saam-medtrace-orderer Creating 
+ Volume saam-medtrace-peer0-org2-ledger Created 
+ Volume saam-medtrace-peer0-org2-ledger Created 
+ Container saam-medtrace-peer0-org2 Creating 
+ Volume saam-medtrace-peer0-org1-ledger Created 
+ Volume saam-medtrace-peer0-org1-ledger Created 
+ Container saam-medtrace-peer0-org1 Creating 
+ Container saam-medtrace-peer0-org2 Created 
+ Container saam-medtrace-orderer Created 
+ Container saam-medtrace-peer0-org1 Created 
+ Container saam-medtrace-peer0-org1 Starting 
+ Container saam-medtrace-peer0-org2 Starting 
+ Container saam-medtrace-orderer Starting 
+ Container saam-medtrace-peer0-org1 Started 
+ Container saam-medtrace-peer0-org2 Started 
+ Container saam-medtrace-orderer Started 
+Joining channel medtrace
+ Container saam-medtrace-tools-run-d8a88360a363 Creating 
+ Container saam-medtrace-tools-run-d8a88360a363 Created 
+Joining orderer to medtrace
+Status: 201
+{
+	"name": "medtrace",
+	"url": "/participation/v1/channels/medtrace",
+	"consensusRelation": "consenter",
+	"status": "active",
+	"height": 1
+}
+
+Joining peer0.org1.example.com:7051 as Org1MSP
+[34m2026-11-16 04:08:55.050 UTC 0001 INFO[0m [channelCmd] [34;1mInitCmdFactory[0m -> Endorser and orderer connections initialized
+[34m2026-11-16 04:08:55.100 UTC 0002 INFO[0m [channelCmd] [34;1mexecuteJoin[0m -> Successfully submitted proposal to join channel
+[34m2026-11-16 04:08:55.627 UTC 0001 INFO[0m [channelCmd] [34;1mInitCmdFactory[0m -> Endorser and orderer connections initialized
+Joining peer0.org2.example.com:7051 as Org2MSP
+[34m2026-11-16 04:08:56.056 UTC 0001 INFO[0m [channelCmd] [34;1mInitCmdFactory[0m -> Endorser and orderer connections initialized
+[34m2026-11-16 04:08:56.126 UTC 0002 INFO[0m [channelCmd] [34;1mexecuteJoin[0m -> Successfully submitted proposal to join channel
+[34m2026-11-16 04:08:56.316 UTC 0001 INFO[0m [channelCmd] [34;1mInitCmdFactory[0m -> Endorser and orderer connections initialized
+Channel join complete
+project: saam-medtrace
+channel: medtrace
+state_database: goleveldb
+fabric_peer: 2.5.16
+fabric_orderer: 2.5.16
+fabric_ca: 1.5.17
+container saam-medtrace-ca-org1: running
+container saam-medtrace-ca-org2: running
+container saam-medtrace-ca-orderer: running
+container saam-medtrace-orderer: running
+container saam-medtrace-peer0-org1: running
+container saam-medtrace-peer0-org2: running
+saam-medtrace-peer0-org1 state_database: goleveldb
+saam-medtrace-peer0-org1: joined
+saam-medtrace-peer0-org2 state_database: goleveldb
+saam-medtrace-peer0-org2: joined
+orderer: joined
+state: healthy
+=== bash fabric/network.sh start -> exit 0 in 54 s
+=== bash fabric/enroll-identities.sh (start)
+Enrolling nine identities
+ Container saam-medtrace-ca-client-run-07cb623984e3 Creating 
+ Container saam-medtrace-ca-client-run-07cb623984e3 Created 
+Enrolling agent-ingestion
+Enrolling agent-preparation
+Enrolling agent-features
+Enrolling agent-prediction
+Enrolling agent-validation
+Enrolling agent-explanation
+Enrolling agent-finalization
+Enrolling model-admin
+Enrolling verifier
+Identity enrollment complete
+Building provenance chaincode
+ Container saam-medtrace-cc-build-run-7db7107a5108 Creating 
+ Container saam-medtrace-cc-build-run-7db7107a5108 Created 
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 328 packages, and audited 329 packages in 2m
+
+35 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+
+> provenance@0.1.0 build
+> node node_modules/typescript/bin/tsc
+
+Building ledger gateway
+ Container saam-medtrace-gw-build-run-659919a3fcf7 Creating 
+ Container saam-medtrace-gw-build-run-659919a3fcf7 Created 
+npm warn EBADENGINE Unsupported engine {
+npm warn EBADENGINE   package: 'cookie@2.0.2',
+npm warn EBADENGINE   required: { node: '>=22' },
+npm warn EBADENGINE   current: { node: 'v20.20.2', npm: '10.8.2' }
+npm warn EBADENGINE }
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+
+added 337 packages, and audited 338 packages in 2m
+
+55 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+
+> ledger-gateway@0.1.0 build
+> node node_modules/typescript/bin/tsc
+
+Installing provenance on both peers
+ Container saam-medtrace-tools-run-1a900c4e04c7 Creating 
+ Container saam-medtrace-tools-run-1a900c4e04c7 Created 
+Starting chaincode services
+ Container saam-medtrace-cc-org2 Creating 
+ Container saam-medtrace-cc-org1 Creating 
+ Container saam-medtrace-cc-org1 Created 
+ Container saam-medtrace-cc-org2 Created 
+ Container saam-medtrace-cc-org1 Starting 
+ Container saam-medtrace-cc-org2 Starting 
+ Container saam-medtrace-cc-org1 Started 
+ Container saam-medtrace-cc-org2 Started 
+Waiting for chaincode servers
+Identities enrolled and provenance is ready
+=== bash fabric/enroll-identities.sh -> exit 0 in 279 s
+=== bash fabric/gateway-check.sh (start)
+ Container saam-medtrace-spike-run-578e77ff9ce8 Creating 
+ Container saam-medtrace-spike-run-578e77ff9ce8 Created 
+
+> ledger-gateway@0.1.0 build
+> node node_modules/typescript/bin/tsc
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+ Container saam-medtrace-spike-run-3f613ed8a608 Creating 
+ Container saam-medtrace-spike-run-3f613ed8a608 Created 
+
+> ledger-gateway@0.1.0 check:gateway
+> node dist/gateway-check.js
+
+GATEWAY_CHECK {"scenario":"flow","create":200,"read":200,"creatorMspId":"Org1MSP","creatorId":"/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=agent-ingestion","creatorAgent":"ingestion","forged":400,"forgedCode":"SCHEMA","forgedStored":false,"duplicate":409,"duplicateCode":"DUPLICATE","missing":404,"missingCode":"NOT_FOUND","unauthorized":401,"unauthorizedCode":"UNAUTHORIZED","shape":true}
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+=== bash fabric/gateway-check.sh -> exit 0 in 34 s
+=== bash fabric/history-check.sh (start)
+ Container saam-medtrace-spike-run-3e40725e7ef8 Creating 
+ Container saam-medtrace-spike-run-3e40725e7ef8 Created 
+
+> ledger-gateway@0.1.0 build
+> node node_modules/typescript/bin/tsc
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+ Container saam-medtrace-spike-run-ecf8582edba2 Creating 
+ Container saam-medtrace-spike-run-ecf8582edba2 Created 
+
+> ledger-gateway@0.1.0 check:history
+> node dist/history-check.js
+
+HISTORY_CHECK {"count":7,"types":["original","processed","features","prediction","validation","explanation","final_result"],"otherCaseCount":1,"emptyCaseCount":0,"forgedCode":"SCHEMA","forgedStored":false,"creatorMspId":"Org1MSP","creatorId":"/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=agent-ingestion","creatorAgent":"ingestion"}
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+=== bash fabric/history-check.sh -> exit 0 in 42 s
+=== bash fabric/model-check.sh (start)
+ Container saam-medtrace-spike-run-f9c00e3e773c Creating 
+ Container saam-medtrace-spike-run-f9c00e3e773c Created 
+
+> ledger-gateway@0.1.0 build
+> node node_modules/typescript/bin/tsc
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+ Container saam-medtrace-spike-run-6fe429246511 Creating 
+ Container saam-medtrace-spike-run-6fe429246511 Created 
+
+> ledger-gateway@0.1.0 check:model
+> node dist/model-check.js
+
+MODEL_CHECK {"registeredBy":"/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=model-admin","registeredAt":"2026-11-16T04:15:26.617Z","docType":"model","readBack":true,"readByVerifier":true,"readByAgent":true,"duplicateCode":"DUPLICATE","duplicateChangedRecord":false,"verifierCode":"FORBIDDEN","agentCode":"FORBIDDEN","refusedStored":false,"extraFieldCode":"SCHEMA","extraFieldStored":false,"absentCode":"NOT_FOUND","malformedCode":"SCHEMA"}
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+=== bash fabric/model-check.sh -> exit 0 in 30 s
+=== bash fabric/gateway-routes-check.sh (start)
+ Container saam-medtrace-spike-run-38f5be3edfe9 Creating 
+ Container saam-medtrace-spike-run-38f5be3edfe9 Created 
+
+> ledger-gateway@0.1.0 build
+> node node_modules/typescript/bin/tsc
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+ Container saam-medtrace-spike-run-00ed0395ee76 Creating 
+ Container saam-medtrace-spike-run-00ed0395ee76 Created 
+
+> ledger-gateway@0.1.0 check:routes
+> node dist/gateway-routes-check.js
+
+ROUTES_CHECK {"created":7,"artifactRead":200,"history":200,"count":7,"types":["original","processed","features","prediction","validation","explanation","final_result"],"parentsOk":true,"verifierHistory":200,"emptyCaseCount":0,"badCase":400,"badCaseCode":"SCHEMA","agentRegistration":403,"agentRegistrationCode":"FORBIDDEN","verifierRegistration":403,"verifierRegistrationCode":"FORBIDDEN","refusedStored":false,"registration":200,"docType":"model","registeredBy":"/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=model-admin","read":200,"readBack":true,"readByVerifier":true,"readByAgent":true,"duplicate":409,"duplicateCode":"DUPLICATE","duplicateChangedRecord":false,"missing":404,"missingCode":"NOT_FOUND","extraField":400,"extraFieldCode":"SCHEMA","extraFieldStored":false,"unauthorized":401,"unauthorizedCode":"UNAUTHORIZED","shape":true,"tokenLeaked":false}
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+=== bash fabric/gateway-routes-check.sh -> exit 0 in 46 s
+=== bash fabric/gateway-routes-check.sh (start)
+ Container saam-medtrace-spike-run-6459860e6de6 Creating 
+ Container saam-medtrace-spike-run-6459860e6de6 Created 
+
+> ledger-gateway@0.1.0 build
+> node node_modules/typescript/bin/tsc
+
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+ Container saam-medtrace-spike-run-58f81e080697 Creating 
+ Container saam-medtrace-spike-run-58f81e080697 Created 
+
+> ledger-gateway@0.1.0 check:routes
+> node dist/gateway-routes-check.js
+
+ROUTES_CHECK {"created":7,"artifactRead":200,"history":200,"count":7,"types":["original","processed","features","prediction","validation","explanation","final_result"],"parentsOk":true,"verifierHistory":200,"emptyCaseCount":0,"badCase":400,"badCaseCode":"SCHEMA","agentRegistration":403,"agentRegistrationCode":"FORBIDDEN","verifierRegistration":403,"verifierRegistrationCode":"FORBIDDEN","refusedStored":false,"registration":200,"docType":"model","registeredBy":"/C=US/ST=North Carolina/O=Hyperledger/OU=client/CN=model-admin","read":200,"readBack":true,"readByVerifier":true,"readByAgent":true,"duplicate":409,"duplicateCode":"DUPLICATE","duplicateChangedRecord":false,"missing":404,"missingCode":"NOT_FOUND","extraField":400,"extraFieldCode":"SCHEMA","extraFieldStored":false,"unauthorized":401,"unauthorizedCode":"UNAUTHORIZED","shape":true,"tokenLeaked":false}
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 12.2.2
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.2
+npm notice To update run: npm install -g npm@12.2.2
+npm notice
+=== bash fabric/gateway-routes-check.sh -> exit 0 in 50 s
+=== bash fabric/network.sh stop (start)
+ Container saam-medtrace-peer0-org2 Stopping 
+ Container saam-medtrace-ca-org2 Stopping 
+ Container saam-medtrace-ca-orderer Stopping 
+ Container saam-medtrace-orderer Stopping 
+ Container saam-medtrace-ca-org1 Stopping 
+ Container saam-medtrace-peer0-org1 Stopping 
+ Container saam-medtrace-peer0-org2 Stopped 
+ Container saam-medtrace-peer0-org2 Removing 
+ Container saam-medtrace-peer0-org2 Removed 
+ Container saam-medtrace-ca-org2 Stopped 
+ Container saam-medtrace-ca-org2 Removing 
+ Container saam-medtrace-ca-org2 Removed 
+ Container saam-medtrace-ca-orderer Stopped 
+ Container saam-medtrace-ca-orderer Removing 
+ Container saam-medtrace-ca-orderer Removed 
+ Container saam-medtrace-peer0-org1 Stopped 
+ Container saam-medtrace-peer0-org1 Removing 
+ Container saam-medtrace-peer0-org1 Removed 
+ Container saam-medtrace-ca-org1 Stopped 
+ Container saam-medtrace-ca-org1 Removing 
+ Container saam-medtrace-ca-org1 Removed 
+ Container saam-medtrace-orderer Stopped 
+ Container saam-medtrace-orderer Removing 
+ Container saam-medtrace-orderer Removed 
+ Volume saam-medtrace-peer0-org2-ledger Removing 
+ Volume saam-medtrace-orderer-ledger Removing 
+ Network saam-medtrace Removing 
+ Volume saam-medtrace-peer0-org1-ledger Removing 
+ Network saam-medtrace Resource is still in use 
+ Volume saam-medtrace-peer0-org2-ledger Removed 
+ Volume saam-medtrace-peer0-org1-ledger Removed 
+ Volume saam-medtrace-orderer-ledger Removed 
+state: stopped
+project: saam-medtrace
+=== bash fabric/network.sh stop -> exit 0 in 13 s
+DONE

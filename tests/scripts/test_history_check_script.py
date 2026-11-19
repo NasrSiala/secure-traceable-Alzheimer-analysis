@@ -108,16 +108,20 @@ def test_without_usable_node_or_runtime_nothing_runs(
 
 def test_the_check_scripts_share_one_dispatch(repo_root: Path) -> None:
     """The host-or-container logic lives in fabric/lib/gateway-run.sh, not in a copy per script,
-    and the library names every script that uses it (AUD-093)."""
+    and the library names every script that uses it (AUD-093). The scripts are found, not listed:
+    a new fabric/*-check.sh that is not named in the library fails here (AUD-102)."""
     lib = (repo_root / "fabric" / "lib" / "gateway-run.sh").read_text(encoding="utf-8")
     assert "run_gateway_script()" in lib
     assert "host_can_run()" in lib
-    for name in (
+    found = sorted(path.name for path in (repo_root / "fabric").glob("*-check.sh"))
+    # A rename or a bad glob must not empty the loop: the known scripts have to be in it.
+    assert {
         "gateway-check.sh",
         "history-check.sh",
         "model-check.sh",
-        "spike-latency.sh",
-    ):
+        "gateway-routes-check.sh",
+    } <= set(found)
+    for name in [*found, "spike-latency.sh"]:
         script = (repo_root / "fabric" / name).read_text(encoding="utf-8")
         assert "lib/gateway-run.sh" in script, name
         assert "host_can_run()" not in script, name

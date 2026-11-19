@@ -1,0 +1,16 @@
+# Audit changes, round 7 — SAAMSTIAHF
+
+Branch `l07-chaincode-model-registry` @ `5969c89`. **Nothing is committed or staged.** The changes sit in the working tree next to the owner's uncommitted `l08-gateway-history-model-routes` (T2.6, 2/2) files. Findings: `audit/round-7/AUDIT_REPORT.md` (7 findings, AUD-099 to AUD-105; 5 fixed, 2 Info left open).
+
+| # | Finding | Files | Change | Verified by |
+|---|---|---|---|---|
+| 1 | AUD-099 | `ledger-gateway/src/app.ts` | `Fastify({ frameworkErrors })`: a bad percent-encoding and a path parameter over 100 characters answer 400 `SCHEMA` in the IF-09 envelope instead of Fastify's own 400 `FST_ERR_BAD_URL` / 414 `FST_ERR_MAX_PARAM_LENGTH` bodies. | 9 new Jest tests (`ledger-routes.test.ts`, with and without a token, ledger never called); 4 mutations of the option (removed, 414, `UNAVAILABLE`, framework's own shape) each fail 9 tests; before the change the same probe returned the Fastify bodies (`BASELINE.md`) |
+| 2 | AUD-100 | `ledger-gateway/test/ledger-routes.test.ts` | "reads with the identity selected by the token" ran with one token (the verifier). Now `test.each` over the agent, the administrator and the verifier. The verifier case is kept; the test only gets stronger. | Jest 201 → 212 with AUD-099; the three hard-coded-identity mutations of the history route each fail 2 tests (before: 0) |
+| 3 | AUD-101 | `ledger-gateway/src/gateway-routes-check.ts` | The leak check scans the refusals for the agent, administrator, verifier and unknown tokens (it scanned the unknown one only). | `tsc` clean; live `gateway-routes-check.sh` exit 0 twice (see `AUDIT_REPORT.md` §6) |
+| 4 | AUD-102 | `fabric/lib/gateway-run.sh` (header), `tests/scripts/test_history_check_script.py` | The header names `gateway-routes-check.sh`. `test_the_check_scripts_share_one_dispatch` finds the scripts with `glob("*-check.sh")` plus `spike-latency.sh` and requires the four known ones to be among them, so a new check script is covered without an edit. | 4 mutations red (header without the routes script; a `host_can_run()` copy in it; a new `*-check.sh` with its own dispatch; a new `*-check.sh` that sources the library but is not named in it); `bash -n` clean |
+| 5 | AUD-103 | `PROGRESS.md` | T2.6 (2/2) proof row: "105 existants … 96 nouveaux" → "118 existants … 83 nouveaux (79 + 4)", and the audit's own counts. | read-through against `jest --json` per file |
+| 6 | docs | `audit/round-7/` | Round-7 documents and `tools/` (URL probe, two mutation runners, live runner). | `ruff check .`, `ruff format --check .` clean |
+
+Not changed, with the reason: AUD-104 (probe helpers copied in four programs: no defect, four live programs to re-prove), AUD-105 (the eight script contract tests exist in four files: merging renames tests, which AGENTS.md reserves for the owner), and AUD-095 to AUD-098 from round 6 (decisions of the spec owner or B). See `AUDIT_REPORT.md` §7.
+
+Staging note for the commit: `fabric/gateway-routes-check.sh` is executable on disk and untracked; the host has `core.fileMode=false`, so stage it with `git add --chmod=+x fabric/gateway-routes-check.sh` (`test_shell_scripts_are_executable_in_the_git_index` fails otherwise once it is tracked).
