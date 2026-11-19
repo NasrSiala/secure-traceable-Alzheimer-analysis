@@ -1,0 +1,239 @@
+# Inventory — round 11
+
+Date 2026-11-19. `[x]` read in full this round. `[~]` read in part. `[-]` not a source review. `[ ]` not read this round.
+
+- [ ] `.gitattributes`
+- [ ] `.gitignore`
+- [ ] `AGENTS.md`
+- [~] `PROGRESS.md`
+- [ ] `Projet 1.md`
+- [ ] `audit/AUDIT_REPORT.md`
+- [ ] `audit/BASELINE.md`
+- [ ] `audit/CHANGES.md`
+- [ ] `audit/INVENTORY.md`
+- [ ] `audit/PR_BODY.md`
+- [-] not source for this round `audit/proposals/schema-least-privilege.diff`
+- [ ] `audit/round-10/AUDIT_REPORT.md`
+- [ ] `audit/round-10/BASELINE.md`
+- [ ] `audit/round-10/CHANGES.md`
+- [ ] `audit/round-10/INVENTORY.md`
+- [ ] `audit/round-2/AUDIT_REPORT.md`
+- [ ] `audit/round-2/BASELINE.md`
+- [ ] `audit/round-2/CHANGES.md`
+- [ ] `audit/round-2/INVENTORY.md`
+- [ ] `audit/round-3/AUDIT_REPORT.md`
+- [ ] `audit/round-3/BASELINE.md`
+- [ ] `audit/round-3/CHANGES.md`
+- [ ] `audit/round-3/INVENTORY.md`
+- [ ] `audit/round-4/AUDIT_REPORT.md`
+- [ ] `audit/round-4/BASELINE.md`
+- [ ] `audit/round-4/CHANGES.md`
+- [ ] `audit/round-4/INVENTORY.md`
+- [ ] `audit/round-5/AUDIT_REPORT.md`
+- [ ] `audit/round-5/BASELINE.md`
+- [ ] `audit/round-5/CHANGES.md`
+- [ ] `audit/round-5/INVENTORY.md`
+- [ ] `audit/round-6/AUDIT_REPORT.md`
+- [ ] `audit/round-6/BASELINE.md`
+- [ ] `audit/round-6/CHANGES.md`
+- [ ] `audit/round-6/INVENTORY.md`
+- [ ] `audit/round-7/AUDIT_REPORT.md`
+- [ ] `audit/round-7/BASELINE.md`
+- [ ] `audit/round-7/CHANGES.md`
+- [ ] `audit/round-7/INVENTORY.md`
+- [-] not source for this round `audit/round-7/baseline-test-l.log`
+- [-] not source for this round `audit/round-7/final-test-l.log`
+- [-] not source for this round `audit/round-7/live.log`
+- [-] not source for this round `audit/round-7/tools/in-node.sh`
+- [-] not source for this round `audit/round-7/tools/live.sh`
+- [-] not source for this round `audit/round-7/tools/mutate-gateway.js`
+- [-] not source for this round `audit/round-7/tools/mutate_dispatch.py`
+- [-] not source for this round `audit/round-7/tools/mutate_parity.py`
+- [-] not source for this round `audit/round-7/tools/mutations-app.json`
+- [-] not source for this round `audit/round-7/tools/mutations-fix.json`
+- [-] not source for this round `audit/round-7/tools/probe-urls.js`
+- [ ] `audit/round-8/AUDIT_REPORT.md`
+- [ ] `audit/round-8/BASELINE.md`
+- [ ] `audit/round-8/CHANGES.md`
+- [ ] `audit/round-8/INVENTORY.md`
+- [-] not source for this round `audit/round-8/baseline-test-l.log`
+- [-] not source for this round `audit/round-8/final-test-l.log`
+- [-] not source for this round `audit/round-8/linux-suite.log`
+- [-] not source for this round `audit/round-8/live-integrity.log`
+- [-] not source for this round `audit/round-8/mutations-fixes.log`
+- [-] not source for this round `audit/round-8/mutations-guard-after.log`
+- [-] not source for this round `audit/round-8/mutations-guard-final.log`
+- [-] not source for this round `audit/round-8/mutations-guard.log`
+- [-] not source for this round `audit/round-8/npm-audit.log`
+- [-] not source for this round `audit/round-8/tools/apply_fixes.py`
+- [-] not source for this round `audit/round-8/tools/apply_fixes_2.py`
+- [-] not source for this round `audit/round-8/tools/apply_fixes_3.py`
+- [-] not source for this round `audit/round-8/tools/mutate_fixes.py`
+- [-] not source for this round `audit/round-8/tools/mutate_guard.py`
+- [-] not source for this round `audit/round-8/tools/orphan-probe.sh`
+- [-] not source for this round `audit/round-8/tools/probe_guard.py`
+- [-] not source for this round `audit/round-8/tools/probe_proxy.py`
+- [-] not source for this round `audit/round-8/tools/windows_tree_probe.py`
+- [-] not source for this round `audit/round-8/windows-tree-probe.log`
+- [ ] `audit/round-9/AUDIT_REPORT.md`
+- [ ] `audit/round-9/BASELINE.md`
+- [ ] `audit/round-9/CHANGES.md`
+- [ ] `audit/round-9/INVENTORY.md`
+- [-] not source for this round `audit/round-9/baseline-test-l.log`
+- [-] not source for this round `audit/round-9/board-port-set.log`
+- [-] not source for this round `audit/round-9/final-test-l.log`
+- [-] not source for this round `audit/round-9/mutations-fixes.log`
+- [-] not source for this round `audit/round-9/mutations-hello-after.log`
+- [-] not source for this round `audit/round-9/mutations-hello-final.log`
+- [-] not source for this round `audit/round-9/mutations-hello.log`
+- [-] not source for this round `audit/round-9/tools/apply_docs.py`
+- [-] not source for this round `audit/round-9/tools/apply_fixes.py`
+- [-] not source for this round `audit/round-9/tools/apply_fixes_2.py`
+- [-] not source for this round `audit/round-9/tools/mutate_fixes.py`
+- [-] not source for this round `audit/round-9/tools/mutate_hello.py`
+- [-] not source for this round `audit/round-9/tools/patch_mutate_hello.py`
+- [-] not source for this round `audit/round-9/tools/xsim/run_xsim.py`
+- [-] not source for this round `audit/round-9/tools/xsim/tb_axil_reg_bringup.vhd`
+- [-] not source for this round `audit/round-9/xsim-register.log`
+- [-] not source for this round `audit/tools/apply_doc_fixes.py`
+- [-] not source for this round `audit/tools/apply_if09_fix.py`
+- [-] not source for this round `audit/tools/apply_schema_patch.py`
+- [-] not source for this round `audit/tools/apply_trd_deps_fix.py`
+- [-] not source for this round `audit/tools/crosscheck.py`
+- [-] not source for this round `audit/tools/idcheck.py`
+- [-] not source for this round `audit/tools/linux_check.sh`
+- [-] not source for this round `audit/tools/verify_schema_patch.sh`
+- [ ] `chaincode/provenance/.gitkeep`
+- [ ] `chaincode/provenance/jest.config.js`
+- [-] not source for this round `chaincode/provenance/package-lock.json`
+- [ ] `chaincode/provenance/package.json`
+- [ ] `chaincode/provenance/src/artifact.ts`
+- [ ] `chaincode/provenance/src/errors.ts`
+- [ ] `chaincode/provenance/src/index.ts`
+- [ ] `chaincode/provenance/src/model.ts`
+- [ ] `chaincode/provenance/src/provenance.ts`
+- [ ] `chaincode/provenance/test/memory-ledger.ts`
+- [ ] `chaincode/provenance/test/model-registry.test.ts`
+- [ ] `chaincode/provenance/test/provenance.test.ts`
+- [ ] `chaincode/provenance/tsconfig.json`
+- [ ] `chaincode/provenance/tsconfig.test.json`
+- [-] not source for this round `docs/presentation/SAAMSTIAHF-vision-equipe.pptx`
+- [ ] `docs/specs/01-prd.md`
+- [ ] `docs/specs/02-trd.md`
+- [ ] `docs/specs/03-architecture.md`
+- [ ] `docs/specs/04-backend-schema.md`
+- [ ] `docs/specs/05-system-design.md`
+- [ ] `docs/specs/06-app-flow.md`
+- [ ] `docs/specs/07-design-brief.md`
+- [ ] `docs/specs/08-implementation-plan-L.md`
+- [ ] `docs/specs/08-implementation-plan.md`
+- [ ] `docs/specs/CHANGELOG.md`
+- [ ] `docs/specs/aar.md`
+- [ ] `docs/specs/review.md`
+- [ ] `docs/specs/schema.sql`
+- [ ] `docs/specs/traceability.md`
+- [ ] `fabric/compose/compose.yaml`
+- [ ] `fabric/config/configtx.yaml`
+- [ ] `fabric/deploy-chaincode.sh`
+- [ ] `fabric/enroll-identities.sh`
+- [ ] `fabric/gateway-check.sh`
+- [ ] `fabric/gateway-routes-check.sh`
+- [ ] `fabric/gateway-serve.sh`
+- [ ] `fabric/history-check.sh`
+- [ ] `fabric/lib/gateway-run.sh`
+- [ ] `fabric/model-check.sh`
+- [ ] `fabric/network.sh`
+- [ ] `fabric/scripts/deploy-chaincode.sh`
+- [ ] `fabric/scripts/enroll-identities.sh`
+- [ ] `fabric/scripts/enroll.sh`
+- [ ] `fabric/scripts/join-channel.sh`
+- [ ] `fabric/scripts/start-ca.sh`
+- [ ] `fabric/spike-latency.sh`
+- [ ] `fabric/spike-submit.sh`
+- [ ] `hw/.gitkeep`
+- [ ] `hw/BRINGUP.md`
+- [ ] `hw/host/tests/bringup_support.py`
+- [ ] `hw/host/tests/hello_stub/uart_stub.c`
+- [ ] `hw/host/tests/hello_stub/xil_io.h`
+- [ ] `hw/host/tests/hello_stub/xil_types.h`
+- [ ] `hw/host/tests/hello_stub/xparameters.h`
+- [ ] `hw/host/tests/hello_stub/xuartps.h`
+- [ ] `hw/host/tests/test_bringup.py`
+- [ ] `hw/host/tests/test_bringup_support.py`
+- [ ] `hw/host/tests/test_hello_console.py`
+- [ ] `hw/ps_app/bringup/build_app.py`
+- [ ] `hw/ps_app/bringup/hello.c`
+- [ ] `hw/rtl/axil_reg_bringup.vhd`
+- [x] `hw/rtl/sha256_core.vhd`
+- [x] `hw/sim/Makefile`
+- [x] `hw/sim/cocotb.mk`
+- [ ] `hw/sim/sha256_core_tb.vhd`
+- [x] `hw/sim/sha_support.py`
+- [x] `hw/sim/test_sha256.py`
+- [ ] `hw/vivado/build.tcl`
+- [ ] `ledger-gateway/.env.example`
+- [ ] `ledger-gateway/.gitkeep`
+- [ ] `ledger-gateway/jest.config.js`
+- [-] not source for this round `ledger-gateway/package-lock.json`
+- [ ] `ledger-gateway/package.json`
+- [ ] `ledger-gateway/src/app.ts`
+- [ ] `ledger-gateway/src/errors.ts`
+- [ ] `ledger-gateway/src/fabric-client.ts`
+- [ ] `ledger-gateway/src/gateway-check.ts`
+- [ ] `ledger-gateway/src/gateway-routes-check.ts`
+- [ ] `ledger-gateway/src/history-check.ts`
+- [ ] `ledger-gateway/src/model-check.ts`
+- [ ] `ledger-gateway/src/probe-artifact.ts`
+- [ ] `ledger-gateway/src/server.ts`
+- [ ] `ledger-gateway/src/settings.ts`
+- [ ] `ledger-gateway/src/spike-latency.ts`
+- [ ] `ledger-gateway/src/spike-submit.ts`
+- [ ] `ledger-gateway/src/tokens.ts`
+- [ ] `ledger-gateway/test/fabric-client.test.ts`
+- [ ] `ledger-gateway/test/ledger-fixtures.ts`
+- [ ] `ledger-gateway/test/ledger-routes.test.ts`
+- [ ] `ledger-gateway/test/ledger-session.test.ts`
+- [ ] `ledger-gateway/test/routes.test.ts`
+- [ ] `ledger-gateway/test/tokens.test.ts`
+- [ ] `ledger-gateway/test/wallet-fixture.ts`
+- [ ] `ledger-gateway/tsconfig.json`
+- [ ] `ledger-gateway/tsconfig.test.json`
+- [ ] `pytest.ini`
+- [ ] `scripts/test-l.sh`
+- [ ] `tests/conftest.py`
+- [ ] `tests/fabric/fabric_support.py`
+- [ ] `tests/fabric/test_case_history.py`
+- [ ] `tests/fabric/test_gateway_artifacts.py`
+- [ ] `tests/fabric/test_gateway_ledger_routes.py`
+- [ ] `tests/fabric/test_identities.py`
+- [ ] `tests/fabric/test_latency_budget.py`
+- [ ] `tests/fabric/test_model_registry.py`
+- [ ] `tests/fabric/test_network.py`
+- [ ] `tests/fabric/test_node_fallback.py`
+- [ ] `tests/integrity/gateway_history.py`
+- [ ] `tests/integrity/phi_guard.py`
+- [ ] `tests/integrity/process_tree.py`
+- [ ] `tests/integrity/synthetic_case.py`
+- [ ] `tests/integrity/test_no_phi_onchain.py`
+- [ ] `tests/scripts/gateway_run_support.py`
+- [ ] `tests/scripts/test_artifact_schema_parity.py`
+- [ ] `tests/scripts/test_bringup_config.py`
+- [ ] `tests/scripts/test_deploy_chaincode_script.py`
+- [ ] `tests/scripts/test_gateway_check_script.py`
+- [ ] `tests/scripts/test_gateway_routes_check_script.py`
+- [ ] `tests/scripts/test_gateway_serve_script.py`
+- [ ] `tests/scripts/test_git_hygiene.py`
+- [ ] `tests/scripts/test_history_check_script.py`
+- [ ] `tests/scripts/test_model_check_script.py`
+- [ ] `tests/scripts/test_model_schema_parity.py`
+- [ ] `tests/scripts/test_network_contract.py`
+- [ ] `tests/scripts/test_network_helpers.py`
+- [ ] `tests/scripts/test_node_packages.py`
+- [~] `tests/scripts/test_sha256_core.py`
+- [ ] `tests/scripts/test_spike_latency_script.py`
+- [ ] `tests/scripts/test_test_l.py`
+- [x] `hw/rtl/sha256_padder.vhd`
+- [x] `hw/sim/sha256_padder_tb.vhd`
+- [x] `hw/sim/test_sha256_padder.py`
+- [-] vector file; every digest checked by pytest, not read line by line `hw/sim/vectors/sha256_padder_random.txt`
+- [x] `tests/scripts/test_sha256_padder.py`
