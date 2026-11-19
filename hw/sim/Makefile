@@ -1,8 +1,9 @@
-# Simulation of the hardware cores (hw/rtl). T3.18 (1/2): sha256_core.
+# Simulation of the hardware cores (hw/rtl). T3.18: sha256_core and sha256_padder.
 #
 #   make -C hw/sim            the best simulator that is installed (below)
-#   make -C hw/sim cocotb     GHDL + cocotb: hw/sim/test_sha256.py, digests against hashlib (ADR-12)
+#   make -C hw/sim cocotb     GHDL + cocotb: direct core (test_sha256.py) then the padder
 #   make -C hw/sim xsim       Vivado xsim: the self-checking VHDL testbench sha256_core_tb.vhd
+#   make -C hw/sim xsim-padder  Vivado xsim: sha256_padder_tb.vhd (FIPS padding, 1000 messages)
 #   make -C hw/sim clean
 #
 # The default target picks, in this order:
@@ -14,10 +15,13 @@
 #
 # T1.10 (B) adds the CI job; this file is the local flow until then.
 
-SIM_DIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
-CORE    := $(SIM_DIR)/../rtl/sha256_core.vhd
-TB      := $(SIM_DIR)/sha256_core_tb.vhd
-BUILD   := $(SIM_DIR)/build/xsim
+SIM_DIR   := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+CORE      := $(SIM_DIR)/../rtl/sha256_core.vhd
+TB        := $(SIM_DIR)/sha256_core_tb.vhd
+PADDER    := $(SIM_DIR)/../rtl/sha256_padder.vhd
+PADDER_TB := $(SIM_DIR)/sha256_padder_tb.vhd
+BUILD     := $(SIM_DIR)/build/xsim
+BUILD_PADDER := $(SIM_DIR)/build/xsim-padder
 
 ifeq ($(OS),Windows_NT)
   BAT := .bat
@@ -33,14 +37,15 @@ HAVE_COCOTB := $(shell command -v cocotb-config 2>/dev/null)
 HAVE_XSIM   := $(or $(wildcard $(XVHDL)),$(shell command -v $(XVHDL) 2>/dev/null))
 
 .DEFAULT_GOAL := check
-.PHONY: check cocotb xsim clean
+.PHONY: check cocotb xsim xsim-padder clean
 
 check:
 ifneq ($(and $(HAVE_GHDL),$(HAVE_COCOTB)),)
 	@$(MAKE) --no-print-directory cocotb
 else ifneq ($(HAVE_XSIM),)
-	@echo "GHDL + cocotb not found: running the VHDL testbench in Vivado xsim instead."
+	@echo "GHDL + cocotb not found: running the VHDL testbenches in Vivado xsim instead."
 	@$(MAKE) --no-print-directory xsim
+	@$(MAKE) --no-print-directory xsim-padder
 else ifneq ($(SAAM_HW_SIM_REQUIRED),)
 	@echo "FAILED: no simulator (GHDL + cocotb, or Vivado xsim) and SAAM_HW_SIM_REQUIRED is set."
 	@exit 1
@@ -50,7 +55,8 @@ else
 endif
 
 cocotb:
-	@$(MAKE) -f $(SIM_DIR)/cocotb.mk
+	@$(MAKE) -f $(SIM_DIR)/cocotb.mk TOPLEVEL=sha256_core MODULE=test_sha256
+	@$(MAKE) -f $(SIM_DIR)/cocotb.mk TOPLEVEL=sha256_padder MODULE=test_sha256_padder
 
 xsim:
 	mkdir -p $(BUILD)
@@ -58,6 +64,13 @@ xsim:
 	cd $(BUILD) && $(XELAB) --debug off sha256_core_tb -s sha256_core_tb_sim
 	cd $(BUILD) && $(XSIM) sha256_core_tb_sim -runall 2>&1 | tee xsim.log
 	@grep -q "SHA256_TB PASSED" $(BUILD)/xsim.log || { echo "xsim: the testbench did not pass"; exit 1; }
+
+xsim-padder:
+	mkdir -p $(BUILD_PADDER)
+	cd $(BUILD_PADDER) && $(XVHDL) --2008 $(CORE) $(PADDER) $(PADDER_TB)
+	cd $(BUILD_PADDER) && $(XELAB) --debug off sha256_padder_tb -s sha256_padder_tb_sim
+	cd $(BUILD_PADDER) && $(XSIM) sha256_padder_tb_sim -runall 2>&1 | tee xsim.log
+	@grep -q "SHA256_PADDER_TB PASSED" $(BUILD_PADDER)/xsim.log || { echo "xsim: the padder testbench did not pass"; exit 1; }
 
 clean:
 	rm -rf $(SIM_DIR)/build $(SIM_DIR)/sim_build $(SIM_DIR)/results.xml

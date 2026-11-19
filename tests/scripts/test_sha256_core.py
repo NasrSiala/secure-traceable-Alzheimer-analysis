@@ -345,6 +345,7 @@ BENCH = COCOTB_BENCH.read_text(encoding="utf-8") if COCOTB_BENCH.exists() else "
 
 def test_the_cocotb_bench_compares_with_hashlib_and_covers_the_required_cases() -> None:
     assert "import hashlib" in BENCH
+    assert "16th word" in BENCH
     assert BENCH.count("@cocotb.test") >= 5
     for needle in ("abc", "reset", "two messages", "block"):
         assert needle in BENCH.lower(), needle

@@ -1,11 +1,12 @@
 """cocotb bench of sha256_core (T3.18, 1/2, AC-15.1): pre-padded blocks against hashlib.
 
-Needs GHDL and cocotb: `make -C hw/sim cocotb` (or the default target when both are installed). Not
-run by the repository tests (tests/scripts/test_sha256_core.py only checks its structure); the
-VHDL testbench sha256_core_tb.vhd is the reference run in Vivado xsim.
+Needs GHDL and cocotb: `make -C hw/sim cocotb` runs this direct-core bench first, then the padder
+bench hw/sim/test_sha256_padder.py (unpadded beats, final-word byte count, multi-block). Not run
+by the repository tests (tests/scripts/test_sha256_core.py only checks its structure); the VHDL
+testbench sha256_core_tb.vhd is the reference run in Vivado xsim.
 
 The oracle is `hashlib.sha256` (ADR-12: one source of truth). The core does not pad: the bench pads
-with sha_support.padded_blocks and feeds 16 big-endian words per block.
+with sha_support.padded_blocks and feeds 16 big-endian words per block. These direct-core tests stay.
 """
 
 from __future__ import annotations
@@ -72,19 +73,36 @@ async def pulse_init(dut) -> None:  # type: ignore[no-untyped-def]
 
 
 async def put_word(dut, word: int) -> int:  # type: ignore[no-untyped-def]
-    """Offer a word until the core takes it; returns the cycle count at the accepting edge."""
+    """Offer one word for a single edge, once word_ready is already 1.
+
+    Cocotb samples outputs after the clock edge. The 16th word makes word_ready
+    fall on the edge that takes it, so a loop that waits for word_ready while
+    word_valid stays high never sees that edge and keeps the word into the next
+    block. The VHDL testbench does not have this problem: it reads word_ready
+    in the same delta as the edge, and still sees the pre-edge value.
+    """
+    for _ in range(100000):
+        await RisingEdge(dut.aclk)
+        if int(dut.word_ready.value) == 1 and int(dut.word_valid.value) == 0:
+            break
+    else:
+        raise AssertionError("word_ready stayed low")
     dut.word_data.value = word
     dut.word_valid.value = 1
-    while True:
-        await RisingEdge(dut.aclk)
-        if int(dut.word_ready.value) == 1:
-            break
+    await RisingEdge(dut.aclk)
+    accepted = EDGES[0]
     dut.word_valid.value = 0
-    return EDGES[0]
+    return accepted
 
 
 async def run_block(dut, block: bytes) -> int:  # type: ignore[no-untyped-def]
-    """Feed one padded block, wait for done; returns the busy duration in cycles."""
+    """Feed one padded block and wait until done. Returns the 65-cycle busy time.
+
+    Cocotb reads busy after the edge, so the edge that clears busy already shows
+    0. The VHDL bench reads the pre-edge value and therefore counts that edge too
+    (65 busy cycles, done 66 cycles after the 16th word). Here the same block is
+    64 edges with busy still 1, and done is visible 65 cycles after the accept.
+    """
     accepted = 0
     for word in block_words(block):
         accepted = await put_word(dut, word)
@@ -94,10 +112,12 @@ async def run_block(dut, block: bytes) -> int:  # type: ignore[no-untyped-def]
         if int(dut.busy.value) == 0:
             break
         assert int(dut.word_ready.value) == 0, "word_ready is high while busy"
+        assert int(dut.done.value) == 0, "done is high while busy"
         busy_cycles += 1
     assert int(dut.done.value) == 1, "done is not set when busy falls"
-    assert EDGES[0] - accepted == busy_cycles + 1
-    return busy_cycles
+    assert busy_cycles == BLOCK_CYCLES - 1
+    assert EDGES[0] - accepted == BLOCK_CYCLES
+    return BLOCK_CYCLES
 
 
 async def hash_message(dut, message: bytes, *, restart: bool = True) -> str:  # type: ignore[no-untyped-def]
