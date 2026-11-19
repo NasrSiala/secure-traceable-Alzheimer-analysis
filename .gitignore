@@ -77,3 +77,22 @@ BOOT.bin
 Thumbs.db
 desktop.ini
 ~$*
+
+# --- Matériel : produits de build Vivado/Vitis (T1.9). Les rapports de hw/reports/ restent versionnés ---
+hw/build/
+
+# --- Matériel : projet Vivado créé à la main (T1.9), quel que soit son nom et son dossier sous hw/ ---
+# Il contient des caches, des journaux et des chemins de la machine ; build.tcl le regénère.
+hw/**/*.xpr
+hw/**/*.cache/
+hw/**/*.runs/
+hw/**/*.hw/
+hw/**/*.ip_user_files/
+hw/**/*.sim/
+hw/**/*.gen/
+hw/**/*.srcs/
+
+# --- Simulation matérielle (T3.18) : produits de build, non versionnés ---
+hw/sim/build/
+hw/sim/sim_build/
+hw/sim/results.xml

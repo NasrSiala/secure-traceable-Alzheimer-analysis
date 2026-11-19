@@ -1,0 +1,8 @@
+H1  killed    AUD-110: the proxy variables are trusted again  [1 failed, 200 passed, 11 deselected in 3.65s]
+P1  killed    AUD-106: the job is never terminated  [1 failed, 215 passed, 11 deselected in 45.88s]
+P2  killed    AUD-106: no job, `taskkill /T` only (the first attempt)  [1 failed, 215 passed, 11 deselected in 16.86s]
+P3  killed    AUD-106: only the script is signalled (the original behaviour)  [1 failed, 215 passed, 11 deselected in 15.85s]
+D1  killed    AUD-107: the library does not name gateway-serve.sh  [1 failed, 14 passed in 2.22s]
+D2  killed    AUD-107: a new script sources the library and is not named  [1 failed, 14 passed in 2.08s]
+survivors: none
+finished

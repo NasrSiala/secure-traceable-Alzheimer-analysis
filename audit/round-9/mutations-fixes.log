@@ -1,0 +1,17 @@
+J1  killed    AUD-112: the local phase keeps the port  [1 failed, 13 deselected in 0.67s]
+J2  killed    AUD-112: the tests of the local phase get the port  [1 failed, 1 passed, 13 deselected in 0.97s]
+J3  killed    AUD-112: the host tests of the local phase get the port  [1 failed, 1 passed, 13 deselected in 0.98s]
+J4  killed    AUD-113: a run with no passed test counts as board access  [1 failed, 2 passed, 13 deselected in 1.32s]
+J5  killed    AUD-113: no failure status  [1 failed, 2 passed, 13 deselected in 1.33s]
+J6  killed    AUD-113: the reasons of the skips are hidden again  [1 failed, 4 passed, 13 deselected in 5.84s]
+G1  killed    AUD-114: `hw/**/*.xpr` removed  [1 failed, 25 deselected in 0.51s]
+G2  killed    AUD-114: `hw/**/*.cache/` removed  [1 failed, 1 passed, 25 deselected in 0.50s]
+G3  killed    AUD-114: `hw/**/*.runs/` removed  [1 failed, 2 passed, 25 deselected in 0.57s]
+G4  killed    AUD-114: `hw/**/*.hw/` removed  [1 failed, 3 passed, 25 deselected in 0.61s]
+G5  killed    AUD-114: `hw/**/*.ip_user_files/` removed  [1 failed, 4 passed, 25 deselected in 0.70s]
+G6  killed    AUD-114: `hw/**/*.sim/` removed  [1 failed, 5 passed, 25 deselected in 0.72s]
+G7  killed    AUD-114: `hw/**/*.gen/` removed  [1 failed, 6 passed, 25 deselected in 0.84s]
+G8  killed    AUD-114: `hw/**/*.srcs/` removed  [1 failed, 7 passed, 25 deselected in 0.97s]
+G9  killed    AUD-114: `*.sim/` widened to every `sim/` (hw/sim is versioned)  [1 failed, 5 passed, 25 deselected in 0.79s]
+survivors: none
+finished
