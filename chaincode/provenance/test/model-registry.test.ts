@@ -311,6 +311,70 @@ describe("RegisterModel closed schema", () => {
 describe("GetModel", () => {
   const contract = new Provenance();
 
+  test("a stored model that is not JSON is INTEGRITY", async () => {
+    const { ctx, stub } = context(MODEL_ADMIN);
+    const key = stub.createCompositeKey("model", ["ecg-cnn", "1.0.0"]);
+    await stub.putState(key, Buffer.from("not json"));
+
+    await expectCode(contract.GetModel(ctx, "ecg-cnn", "1.0.0"), "INTEGRITY");
+  });
+
+  test("a stored object missing sha256 and framework is INTEGRITY", async () => {
+    const { ctx, stub } = context(MODEL_ADMIN);
+    const key = stub.createCompositeKey("model", ["ecg-cnn", "1.0.0"]);
+    await stub.putState(
+      key,
+      Buffer.from(
+        JSON.stringify({
+          docType: "model",
+          name: "a",
+          version: "1.0.0",
+          registeredAt: "t",
+          registeredBy: "x",
+        }),
+      ),
+    );
+
+    await expectCode(contract.GetModel(ctx, "ecg-cnn", "1.0.0"), "INTEGRITY");
+  });
+
+  test("a stored model whose sha256 or framework is not the written shape is INTEGRITY", async () => {
+    const { ctx, stub } = context(MODEL_ADMIN);
+    const key = stub.createCompositeKey("model", ["ecg-cnn", "1.0.0"]);
+    const sha = "ab".repeat(32);
+    await stub.putState(
+      key,
+      Buffer.from(
+        JSON.stringify({
+          docType: "model",
+          name: "ecg-cnn",
+          version: "1.0.0",
+          sha256: "abc",
+          framework: "keras",
+          registeredAt: "t",
+          registeredBy: "x",
+        }),
+      ),
+    );
+    await expectCode(contract.GetModel(ctx, "ecg-cnn", "1.0.0"), "INTEGRITY");
+
+    await stub.putState(
+      key,
+      Buffer.from(
+        JSON.stringify({
+          docType: "model",
+          name: "ecg-cnn",
+          version: "1.0.0",
+          sha256: sha,
+          framework: "k".repeat(41),
+          registeredAt: "t",
+          registeredBy: "x",
+        }),
+      ),
+    );
+    await expectCode(contract.GetModel(ctx, "ecg-cnn", "1.0.0"), "INTEGRITY");
+  });
+
   test("reports an absent model as NOT_FOUND, a typed error", async () => {
     const { ctx } = context(MODEL_ADMIN);
     await expectCode(contract.GetModel(ctx, "ecg-cnn", "1.0.0"), "NOT_FOUND");

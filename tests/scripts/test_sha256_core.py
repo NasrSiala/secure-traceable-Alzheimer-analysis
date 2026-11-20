@@ -328,6 +328,14 @@ def test_the_cocotb_target_runs_ghdl_in_vhdl_2008_on_the_documented_bench() -> N
     # Windows Python splits PYTHONPATH on ';'; a colon-only export drops sha_support.
     assert "Windows_NT" in text
     assert "PYSEP := ;" in text
+    assert "sha256_axi.vhd" in text
+    assert "fir_axi.vhd" in text
+    make = (SIM / "Makefile").read_text(encoding="utf-8")
+    assert "TOPLEVEL=sha256_axi MODULE=test_sha256_axi" in make
+    assert "TOPLEVEL=fir_axi MODULE=test_fir_axi" in make
+    axi = (SIM / "test_sha256_axi.py").read_text(encoding="utf-8")
+    assert "import hashlib" in axi
+    assert "@cocotb.test" in axi
 
 
 def test_the_build_products_of_the_simulation_are_not_versioned() -> None:

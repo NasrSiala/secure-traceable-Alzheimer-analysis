@@ -551,5 +551,19 @@ describe("artifact routes", () => {
       expect(isErrorEnvelope(response.body)).toBe(true);
       expect(codeOf(response.body)).toBe("NOT_FOUND");
     });
+
+    test("an unknown /ledger path without a token is 401, not 404", async () => {
+      const response = await call(base, "GET", "/ledger/nope", undefined);
+
+      expect(response.status).toBe(401);
+      expect(codeOf(response.body)).toBe("UNAUTHORIZED");
+    });
+
+    test("an unknown path outside /ledger stays 404 without a token", async () => {
+      const response = await call(base, "GET", "/health", undefined);
+
+      expect(response.status).toBe(404);
+      expect(codeOf(response.body)).toBe("NOT_FOUND");
+    });
   });
 });

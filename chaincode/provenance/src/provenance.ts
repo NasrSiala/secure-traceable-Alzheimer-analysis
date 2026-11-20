@@ -4,6 +4,7 @@ import {
   type ArtifactRecord,
   type CallerIdentity,
   certificateSubject,
+  SHA256,
   parseClientArtifact,
   requireCaseId,
   requirePipelineAgent,
@@ -50,6 +51,33 @@ function isStoredArtifact(value: unknown): value is ArtifactRecord {
 
 // What the ledger holds is the chaincode's own output. A record that cannot be read back is a
 // fault of the ledger state, not of the caller: INTEGRITY, never SCHEMA or NOT_FOUND.
+function parseStoredModel(raw: Uint8Array): void {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(raw).toString("utf8")) as unknown;
+  } catch {
+    fail("INTEGRITY", "a stored record is not valid JSON");
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    fail("INTEGRITY", "a stored record is not a model");
+  }
+  const record = parsed as Record<string, unknown>;
+  if (
+    record.docType !== "model" ||
+    typeof record.name !== "string" ||
+    typeof record.version !== "string" ||
+    typeof record.sha256 !== "string" ||
+    !SHA256.test(record.sha256) ||
+    typeof record.framework !== "string" ||
+    record.framework.length < 1 ||
+    record.framework.length > 40 ||
+    typeof record.registeredAt !== "string" ||
+    typeof record.registeredBy !== "string"
+  ) {
+    fail("INTEGRITY", "a stored record is not a model");
+  }
+}
+
 function parseStoredArtifact(raw: Uint8Array): ArtifactRecord {
   let parsed: unknown;
   try {
@@ -191,6 +219,7 @@ export class Provenance extends Contract {
     if (stored.length === 0) {
       fail("NOT_FOUND", "artifactId is not on the ledger");
     }
+    parseStoredArtifact(stored);
     return Buffer.from(stored).toString("utf8");
   }
 
@@ -233,6 +262,7 @@ export class Provenance extends Contract {
     if (stored.length === 0) {
       fail("NOT_FOUND", "model is not on the ledger");
     }
+    parseStoredModel(stored);
     return Buffer.from(stored).toString("utf8");
   }
 }

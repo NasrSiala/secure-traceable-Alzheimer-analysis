@@ -656,6 +656,15 @@ describe("a ledger state that cannot be read back is INTEGRITY, not a caller err
     expect(stub.events).toHaveLength(1);
   });
 
+  test("a stored record that is corrupt fails the single read", async () => {
+    const { ctx, stub } = await withRoot();
+    await stub.putState(ROOT, Buffer.from("not json"));
+
+    await expect(contract.GetArtifactRecord(ctx, ROOT)).rejects.toThrow(
+      "INTEGRITY: a stored record is not valid JSON",
+    );
+  });
+
   test("a stored record that is corrupt fails the history", async () => {
     const { ctx, stub } = await withRoot();
     await stub.putState(ROOT, Buffer.from("not json"));
