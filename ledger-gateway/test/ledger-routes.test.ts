@@ -556,7 +556,8 @@ describe("history and model routes", () => {
   });
 
   // The router refuses these before any route runs; Fastify's own bodies are not the IF-09
-  // envelope (AUD-099). The answer does not depend on the token: no route was matched.
+  // envelope (AUD-099). Under /ledger the token is checked first: without one the answer is 401,
+  // with one it is still 400 SCHEMA and the ledger is not called.
   describe("a URL the router cannot use is answered in the same envelope", () => {
     test.each([
       ["a bad percent-encoding in a case id", "/ledger/cases/%zz"],
@@ -568,17 +569,45 @@ describe("history and model routes", () => {
       ["a model name over 100 characters", `/ledger/models/${"m".repeat(101)}/1.0.0`],
       ["a model version over 100 characters", `/ledger/models/ecg-cnn/${"1".repeat(101)}`],
       ["an artifact id over 100 characters", `/ledger/artifacts/${"a".repeat(101)}`],
-    ])("%s answers 400 SCHEMA and never reaches the ledger", async (_label, url) => {
-      for (const token of [AGENT_TOKEN, undefined]) {
-        const response = await call(base, "GET", url, token);
+    ])("%s with a token answers 400 SCHEMA and never reaches the ledger", async (_label, url) => {
+      const response = await call(base, "GET", url, AGENT_TOKEN);
 
-        expect(response.status).toBe(400);
-        expect(response.body).toEqual({
-          error: { code: "SCHEMA", message: "requête invalide", details: {} },
-        });
-      }
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: { code: "SCHEMA", message: "requête invalide", details: {} },
+      });
       expect(ledger.histories).toEqual([]);
       expect(ledger.lookups).toEqual([]);
+    });
+
+    test.each([
+      ["a bad percent-encoding in a case id", "/ledger/cases/%zz"],
+      ["a lone percent sign in a case id", "/ledger/cases/CASE-%"],
+      ["a bad percent-encoding in a model name", "/ledger/models/%zz/1.0.0"],
+      ["a bad percent-encoding in a model version", "/ledger/models/ecg-cnn/%zz"],
+      ["a bad percent-encoding in an artifact id", "/ledger/artifacts/%"],
+      ["a case id over 100 characters", `/ledger/cases/CASE-${"a".repeat(101)}`],
+      ["a model name over 100 characters", `/ledger/models/${"m".repeat(101)}/1.0.0`],
+      ["a model version over 100 characters", `/ledger/models/ecg-cnn/${"1".repeat(101)}`],
+      ["an artifact id over 100 characters", `/ledger/artifacts/${"a".repeat(101)}`],
+    ])("%s without a token answers 401 and never reaches the ledger", async (_label, url) => {
+      const response = await call(base, "GET", url, undefined);
+
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({
+        error: { code: "UNAUTHORIZED", message: "jeton absent ou inconnu", details: {} },
+      });
+      expect(ledger.histories).toEqual([]);
+      expect(ledger.lookups).toEqual([]);
+    });
+
+    test("a bad percent-encoding outside /ledger stays 400 without a token", async () => {
+      const response = await call(base, "GET", "/%zz", undefined);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        error: { code: "SCHEMA", message: "requête invalide", details: {} },
+      });
     });
   });
 

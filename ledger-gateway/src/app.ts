@@ -128,6 +128,19 @@ export function buildApp(options: {
 }): FastifyInstance {
   // The schema is closed (NFR-03): refuse what does not fit instead of repairing it. Fastify's
   // Ajv defaults coerce types ("123" for 123, null for "" or 0 or false) and apply defaults.
+  function requestPath(request: FastifyRequest): string {
+    const url = request.raw.url ?? request.url;
+    return url.split("?")[0] ?? "";
+  }
+
+  function ledgerMissingToken(request: FastifyRequest): boolean {
+    const path = requestPath(request);
+    if (path !== "/ledger" && !path.startsWith("/ledger/")) {
+      return false;
+    }
+    return options.tokens.identityFor(presentedToken(request)) === null;
+  }
+
   const app = Fastify({
     logger: false,
     bodyLimit: 16 * 1024,
@@ -137,9 +150,15 @@ export function buildApp(options: {
     // The router refuses two kinds of URL before any route, hook or error handler runs: a bad
     // percent-encoding and a path parameter over 100 characters. Fastify would answer them in its
     // own shape (400 FST_ERR_BAD_URL, 414 FST_ERR_MAX_PARAM_LENGTH); IF-09 has one body.
-    frameworkErrors: (_error, _request, reply) => {
+    // A /ledger URL still has to present a token before that refusal says anything else.
+    frameworkErrors: (_error, request, reply) => {
       // The option types the reply with generics that `.code()` does not accept as a number.
-      void (reply as FastifyReply).code(400).send(errorBody("SCHEMA", "requête invalide"));
+      const answer = reply as FastifyReply;
+      if (ledgerMissingToken(request)) {
+        void answer.code(401).send(errorBody("UNAUTHORIZED", "jeton absent ou inconnu"));
+        return;
+      }
+      void answer.code(400).send(errorBody("SCHEMA", "requête invalide"));
     },
   });
 
@@ -164,7 +183,11 @@ export function buildApp(options: {
     await reply.code(failure.status).send(failure.body);
   }
 
-  app.setNotFoundHandler((_request, reply) => {
+  app.setNotFoundHandler((request, reply) => {
+    if (ledgerMissingToken(request)) {
+      void reply.code(401).send(errorBody("UNAUTHORIZED", "jeton absent ou inconnu"));
+      return;
+    }
     void reply.code(404).send(errorBody("NOT_FOUND", "route inconnue"));
   });
 
