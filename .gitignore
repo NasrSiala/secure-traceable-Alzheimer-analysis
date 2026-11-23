@@ -91,3 +91,8 @@ hw/**/*.ip_user_files/
 hw/**/*.sim/
 hw/**/*.gen/
 hw/**/*.srcs/
+
+# --- Simulation matérielle (T3.18) : produits de build, non versionnés ---
+hw/sim/build/
+hw/sim/sim_build/
+hw/sim/results.xml
