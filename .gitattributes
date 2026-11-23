@@ -1,3 +1,4 @@
 *.sh text eol=lf
+saam/dsp/fir_coeffs.json text eol=lf
 fabric/compose/*.yaml text eol=lf
 fabric/config/*.yaml text eol=lf

@@ -9,12 +9,19 @@ TOPLEVEL_LANG ?= vhdl
 
 SIM_DIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
-# `make cocotb` passes TOPLEVEL and MODULE: sha256_core / test_sha256, then the padder.
+# `make cocotb` passes TOPLEVEL and MODULE: sha256_core / test_sha256, then the padder,
+# then fir_decim / test_fir, then sha256_axi / test_sha256_axi and fir_axi / test_fir_axi.
 TOPLEVEL ?= sha256_core
 MODULE ?= test_sha256
 
 ifeq ($(TOPLEVEL),sha256_padder)
   VHDL_SOURCES := $(SIM_DIR)/../rtl/sha256_core.vhd $(SIM_DIR)/../rtl/sha256_padder.vhd
+else ifeq ($(TOPLEVEL),sha256_axi)
+  VHDL_SOURCES := $(SIM_DIR)/../rtl/sha256_core.vhd $(SIM_DIR)/../rtl/sha256_padder.vhd $(SIM_DIR)/../rtl/sha256_axi.vhd
+else ifeq ($(TOPLEVEL),fir_decim)
+  VHDL_SOURCES := $(SIM_DIR)/../rtl/fir_coeffs_pkg.vhd $(SIM_DIR)/../rtl/fir_decim.vhd
+else ifeq ($(TOPLEVEL),fir_axi)
+  VHDL_SOURCES := $(SIM_DIR)/../rtl/fir_coeffs_pkg.vhd $(SIM_DIR)/../rtl/fir_decim.vhd $(SIM_DIR)/../rtl/fir_axi.vhd
 else
   VHDL_SOURCES := $(SIM_DIR)/../rtl/sha256_core.vhd
 endif
