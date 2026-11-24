@@ -76,6 +76,42 @@ def test_real_gateway_closed_schema_missing_parent_and_unavailable(gateway) -> N
             client.get_record("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
 
 
+def test_real_gateway_case_history(gateway) -> None:
+    url, agent, verifier = gateway
+    record = artifact(str(uuid4())) | {"caseId": "CASE-" + str(uuid4())}
+    with LedgerClient(url, agent) as writer:
+        created = writer.create_record(record)
+    with LedgerClient(url, verifier) as reader:
+        assert reader.get_case_history(record["caseId"]) == [created]
+        assert reader.get_case_history("CASE-" + str(uuid4())) == []
+
+
+def test_real_gateway_models_identity_duplicates_and_closed_schema(gateway) -> None:
+    url, agent, verifier = gateway
+    model = {
+        "name": "test_" + uuid4().hex,
+        "version": "1.0.0",
+        "sha256": "a" * 64,
+        "framework": "pytorch",
+    }
+    with LedgerClient(url, agent + "-admin") as admin:
+        created = admin.register_model(model)
+        assert created["docType"] == "MODEL"
+        assert all(created[key] == value for key, value in model.items())
+        with pytest.raises(DuplicateRecord):
+            admin.register_model(model)
+        with pytest.raises(InvalidRecord) as invalid:
+            admin.register_model(model | {"file_path": "synthetic"})
+        assert (invalid.value.status, invalid.value.code) == (400, "SCHEMA")
+    with LedgerClient(url, verifier) as reader:
+        assert reader.get_model(model["name"], model["version"]) == created
+        with pytest.raises(RecordNotFound):
+            reader.get_model("absent_" + uuid4().hex, "1.0.0")
+        with pytest.raises(LedgerForbidden) as denied:
+            reader.register_model(model)
+        assert denied.value.status == 403
+
+
 @pytest.mark.parametrize(
     "operation,method,path,payload,result",
     [

@@ -63,6 +63,8 @@ jobs:
         run: uv sync --locked
 
       - name: Simuler le VHDL avec cocotb
+        env:
+          SAAM_HW_SIM_REQUIRED: '1'
         run: uv run --locked make -C hw/sim
 
   validation:

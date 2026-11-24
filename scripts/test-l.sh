@@ -20,7 +20,9 @@ Usage: scripts/test-l.sh [--fabric] [--board] [--dry-run]
 
 --fabric --board runs the local suite plus both optional suites.
 Board mode never opens a serial device itself. It only selects pytest tests
-marked board, and exits successfully when none are registered yet.
+marked board; they open the UART named by SAAM_ZYBO_PORT (for example COM5 or
+/dev/ttyUSB1) and are skipped, with the reason, when it is not set. A skipped
+board test is not a pass. It exits successfully when none are registered.
 
 The TypeScript packages (chaincode/provenance, ledger-gateway) are type-checked
 with the host's Node, or else inside the pinned Node image of
@@ -58,6 +60,16 @@ run_pytest() {
     return 0
   fi
   "${PYTEST[@]}" "$@"
+}
+
+# The local suite never sees the board port. A test inside it that calls this script (or opens a
+# serial port) would otherwise reach the board during the local phase of
+# `SAAM_ZYBO_PORT=COM5 scripts/test-l.sh --board` (AUD-112).
+run_pytest_local() {
+  (
+    unset SAAM_ZYBO_PORT
+    run_pytest "$@"
+  )
 }
 
 require_docker_for_fabric() {
@@ -142,7 +154,7 @@ run_npm_test() {
 
 run_local() {
   echo "Running the local suite (fabric and board excluded)."
-  run_pytest -q -o addopts= -m "not fabric and not board" tests
+  run_pytest_local -q -o addopts= -m "not fabric and not board" tests
   run_npm_test chaincode/provenance
   run_npm_test ledger-gateway
   if [[ -f hw/sim/Makefile ]]; then
@@ -153,7 +165,7 @@ run_local() {
     fi
   fi
   if [[ -d hw/host/tests ]]; then
-    run_pytest -q -o addopts= -m "not board" hw/host/tests
+    run_pytest_local -q -o addopts= -m "not board" hw/host/tests
   fi
 }
 
@@ -170,14 +182,23 @@ run_board() {
   fi
   echo "Running tests marked board."
   if [[ "${DRY_RUN}" -eq 1 ]]; then
-    run_pytest -q -o addopts= -m board "${targets[@]}"
+    run_pytest -q -rs -o addopts= -m board "${targets[@]}"
     echo "board-access: no"
     return 0
   fi
+  # -rs prints why a test was skipped; the output is kept to tell a run that used the board from
+  # one in which every board test was skipped (AUD-113).
+  local log
+  log=$(mktemp)
   set +e
-  "${PYTEST[@]}" -q -o addopts= -m board "${targets[@]}"
-  local rc=$?
+  "${PYTEST[@]}" -q -rs -o addopts= -m board "${targets[@]}" 2>&1 | tee "${log}"
+  local rc=${PIPESTATUS[0]}
   set -e
+  local passed=0
+  if grep -Eq '[0-9]+ passed' "${log}"; then
+    passed=1
+  fi
+  rm -f "${log}"
   if [[ "${rc}" -eq 5 ]]; then
     echo "No board tests are registered. The board was not opened."
     echo "board-access: no"
@@ -185,6 +206,19 @@ run_board() {
   fi
   if [[ "${rc}" -ne 0 ]]; then
     exit "${rc}"
+  fi
+  # The board tests open a serial port only when SAAM_ZYBO_PORT names one; without it they are
+  # skipped, and a skip is not a pass.
+  if [[ -z "${SAAM_ZYBO_PORT:-}" ]]; then
+    echo "The board was not opened."
+    echo "SAAM_ZYBO_PORT is not set: the board tests were skipped, and a skip is not a pass."
+    echo "board-access: no"
+    return 0
+  fi
+  if [[ "${passed}" -eq 0 ]]; then
+    echo "SAAM_ZYBO_PORT is set but no board test passed: they were skipped (reasons above), so the board was not used."
+    echo "board-access: no"
+    return 4
   fi
   echo "board-access: tests-only"
 }

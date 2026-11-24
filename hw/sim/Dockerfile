@@ -12,4 +12,5 @@ COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --python 3.11
 COPY saam ./saam
 COPY hw/sim ./hw/sim
+COPY hw/rtl ./hw/rtl
 CMD ["make", "-C", "hw/sim"]

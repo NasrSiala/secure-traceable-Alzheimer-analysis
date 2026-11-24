@@ -460,11 +460,11 @@ le schéma fermé et les refus. Ils requièrent Node et les dépendances Node
 verrouillées. Les cinq contrats Python sont aussi vérifiés par transport HTTP
 contrôlé, dont les réponses invalides, délais, redirections et chemins injectés.
 
-**Limite T2.6 :** les routes HTTP d'historique et de modèles ne sont pas encore
-implémentées dans la gateway de L. Les trois méthodes clientes sont prêtes,
-mais leurs tests HTTP contre cette gateway restent à compléter après
-`l08-gateway-history-model-routes`. Ces tests n'impliquent aucune transaction
-sur le réseau Fabric réel.
+Les routes d'historique et de modèles de T2.6 sont intégrées depuis `main`.
+Les cinq méthodes du client sont testées contre Fastify réel avec un adaptateur
+Fabric en mémoire : historique vide ou présent, modèles, identité model-admin,
+doublons, absences et schéma fermé. Ces tests sont distincts des transactions
+sur le réseau Fabric réel. Le garde NFR-03 utilise aussi ce client partagé.
 
 ## Source des données
 

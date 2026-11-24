@@ -1,0 +1,8 @@
+E       AssertionError: assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/usr/bin/bash', 'scripts/test-l.sh', '--board'], returncode=1, stdout='Running the local suite..._network_helpers.py::test_check_ports_reports_a_busy_port\n1 failed, 407 passed, 24 deselected in 23.92s\n', stderr='').returncode
+
+tests/scripts/test_test_l.py:193: AssertionError
+=========================== short test summary info ============================
+FAILED tests/scripts/test_network_helpers.py::test_check_ports_reports_a_busy_port
+FAILED tests/scripts/test_test_l.py::test_board_flag_runs_no_board_tests_and_does_not_open_a_device
+2 failed, 406 passed, 24 deselected in 58.90s

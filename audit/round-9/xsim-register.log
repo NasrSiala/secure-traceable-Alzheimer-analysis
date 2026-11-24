@@ -1,0 +1,15 @@
+register as it is: PASS  ALL TESTS PASSED
+killed    strobes ignored  [Failure: CHECK strobes 0101 on 0x11223344]
+killed    response dropped without bready  [Failure: CHECK write: bvalid dropped before bready]
+killed    data dropped without rready  [Failure: CHECK read: rvalid dropped before rready]
+killed    a second write accepted while the response is pending  [Failure: CHECK write: a second write was accepted while the response is pending]
+killed    a second read accepted while the data waits  [Failure: CHECK read: a second read was accepted while the data waits]
+killed    address alone is enough to write  [Failure: CHECK write: address accepted before the data was offered]
+killed    other word addresses write the register  [Failure: CHECK a write at 0x4, 0x8 or 0xC changed the register]
+killed    other word addresses read the register  [Failure: CHECK a read at 0x4 is not 0]
+killed    the register is not cleared by reset  [Failure: CHECK reset value is not 0]
+killed    bresp is not OKAY  [Failure: CHECK write: no OKAY at the handshake]
+killed    rresp is not OKAY  [Failure: CHECK read: no OKAY at the handshake]
+killed    the response is not cleared by reset  [Failure: CHECK reset: a response is offered]
+survivors: none
+finished
