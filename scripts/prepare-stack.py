@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -52,6 +53,7 @@ def prepare_environment(root: Path) -> dict[str, str]:
         database = "saamstiahf"
         generated = {
             "JWT_SECRET": secrets.token_hex(32),
+            "ARTIFACT_KEY": secrets.token_hex(32),
             "POSTGRES_PASSWORD": secrets.token_hex(32),
             "APP_API_PASSWORD": secrets.token_hex(32),
             "APP_WORKER_PASSWORD": secrets.token_hex(32),
@@ -80,6 +82,8 @@ def prepare_environment(root: Path) -> dict[str, str]:
         *IDENTITIES,
     )
     missing = [name for name in required if not values.get(name)]
+    if not values.get("ARTIFACT_KEY") and not values.get("ARTIFACT_KEY_FILE"):
+        missing.append("ARTIFACT_KEY")
     if missing:
         raise ValueError("Variables à renseigner dans .env : " + ", ".join(missing))
     return values
@@ -139,6 +143,22 @@ def prepare(root: Path) -> None:
     values = prepare_environment(root)
     directory = root / "secrets"
     directory.mkdir(mode=0o700, exist_ok=True)
+    encoded_key = values.get("ARTIFACT_KEY", "")
+    if values.get("ARTIFACT_KEY_FILE"):
+        try:
+            encoded_key = (
+                (root / values["ARTIFACT_KEY_FILE"]).read_text(encoding="ascii").strip()
+            )
+        except (OSError, UnicodeError):
+            raise ValueError("Fichier ARTIFACT_KEY_FILE illisible.") from None
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", encoded_key):
+        raise ValueError("ARTIFACT_KEY doit contenir 64 caractères hexadécimaux.")
+    key_path = directory / "artifact-key.hex"
+    if key_path.exists():
+        if key_path.read_text(encoding="ascii").strip().lower() != encoded_key.lower():
+            raise ValueError("La clé AES configurée et le secret Docker diffèrent.")
+    else:
+        write_new(key_path, encoded_key.lower() + "\n")
     tokens = directory / "agent-tokens.json"
     expected = {identity: values[name] for name, identity in IDENTITIES.items()}
     if tokens.exists():

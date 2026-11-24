@@ -6,6 +6,7 @@ from .tool import (
     ArtifactFile,
     IntegrityError,
     TraceabilityTool,
+    json_file,
 )
 from .uploads import UploadStaging, upload_text
 
@@ -17,4 +18,5 @@ __all__ = [
     "TraceabilityTool",
     "UploadStaging",
     "upload_text",
+    "json_file",
 ]

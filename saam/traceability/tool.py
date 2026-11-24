@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 from collections.abc import Callable
@@ -14,8 +15,14 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import dict_row
 
-from saam.hashing import artifact_hash, canonical_manifest, file_hash
-from saam.ledger import DuplicateRecord, Ledger, LedgerError, LedgerUnavailable
+from saam.hashing import artifact_hash, canonical_json, canonical_manifest, file_hash
+from saam.ledger import (
+    DuplicateRecord,
+    Ledger,
+    LedgerClient,
+    LedgerError,
+    LedgerUnavailable,
+)
 from saam.storage import ArtifactStore, DecryptionError
 
 AGENTS = {
@@ -42,6 +49,11 @@ class ArtifactFile:
     name: str
     media_type: str
     data: bytes
+
+
+def json_file(name: str, payload: dict[str, Any]) -> ArtifactFile:
+    """Charge utile JSON canonique préparée par le domaine de traçabilité."""
+    return ArtifactFile(name, "application/json", canonical_json(payload))
 
 
 @dataclass(frozen=True)
@@ -99,6 +111,17 @@ class Artifact:
 
 
 class TraceabilityTool:
+    @classmethod
+    def from_environment(
+        cls, agent: str, *, on_failure: Callable[[str], None]
+    ) -> TraceabilityTool:
+        return cls(
+            os.environ.get("DATABASE_URL_WORKER", ""),
+            ArtifactStore.from_environment(),
+            LedgerClient.from_environment(agent),
+            on_failure=on_failure,
+        )
+
     def __init__(
         self,
         database_url: str,
@@ -178,8 +201,11 @@ class TraceabilityTool:
                     )
             db.commit()
             if prior and prior["anchor_status"] == "ancre":
-                confirmed = self.ledger.get_record(artifact.id)
-                self._proof(confirmed, artifact, digest)
+                try:
+                    confirmed = self.ledger.get_record(artifact.id)
+                    self._proof(confirmed, artifact, digest)
+                except LedgerError:
+                    raise AnchoringError("Registre indisponible.") from None
                 return prior
             payload = {
                 "artifactId": artifact.id,
@@ -261,6 +287,8 @@ class TraceabilityTool:
             ):
                 raise IntegrityError("Manifeste modifié.")
             return dict(manifest)
+        except LedgerError:
+            raise AnchoringError("Registre indisponible.") from None
         except (DecryptionError, ValueError, KeyError, TypeError):
             raise IntegrityError("Manifeste non vérifiable.") from None
 

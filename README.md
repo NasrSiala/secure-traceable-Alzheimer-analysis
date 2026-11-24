@@ -45,14 +45,19 @@ Le script crée `.env`, les jetons de service et le certificat dans `secrets/`,
 sans afficher leurs valeurs. OpenSSL est nécessaire ; Git pour Windows le fournit.
 Une seconde exécution conserve les fichiers existants. Si `.env` existe mais est
 incomplet, le script indique les variables à renseigner sans le remplacer.
-Les clés JWT et `ARTIFACT_KEY` seront utilisées par les tâches d'authentification
-et de stockage ; elles ne sont pas nécessaires aux sondes de santé de T1.5.
+Les clés JWT et AES sont requises pour l'authentification et les traitements.
+La clé AES (32 octets, 64 caractères hexadécimaux) est créée uniquement pour
+un nouvel environnement. Pour un `.env` existant, renseigner `ARTIFACT_KEY`
+ou `ARTIFACT_KEY_FILE` avec la clé déjà utilisée, puis relancer le script.
+Celui-ci prépare `secrets/artifact-key.hex`, monté en lecture seule dans l'API
+et le worker ; il refuse une différence avec un secret existant. Conserver
+cette clé avec les sauvegardes : sa perte empêche de déchiffrer les artefacts.
 
 ## Structure
 
 - `saam/` : modules Python partagés par les processus API et worker.
-  Chaque sous-module correspond à l'Architecture §5 ; `storage/` accueillera
-  le stockage chiffré prévu par T3.2.
+  Chaque sous-module correspond à l'Architecture §5 ; `storage/` fournit
+  le stockage AES-256-GCM de T3.2.
 - `chaincode/provenance/`, `ledger-gateway/`, `fabric/` : contribution L.
 - `frontend/` : contribution F.
 - `ml/`, `saam/dsp/`, `saam/registry/` : contribution I.
@@ -509,6 +514,65 @@ Les cinq méthodes du client sont testées contre Fastify réel avec un adaptate
 Fabric en mémoire : historique vide ou présent, modèles, identité model-admin,
 doublons, absences et schéma fermé. Ces tests sont distincts des transactions
 sur le réseau Fabric réel. Le garde NFR-03 utilise aussi ce client partagé.
+
+## Cas, artefacts et orchestration — T3.2 à T3.5
+
+Après migration et seed, `POST /api/v1/cases` accepte un JWT operator/admin
+et un corps multipart : `ecg_files[]` (CSV ou paire WFDB),
+`csv_sampling_rate` pour le CSV, et éventuellement `report_text` ou
+`report_file`. La réponse 202 contient `id`, `case_ref`, `status=en_attente`
+et un en-tête `Location`. L'ECG est limité à 20 Mo et le rapport UTF-8 à
+10 000 caractères. Le CSV exige les douze dérivations, une fréquence entre
+50 et 10 000 Hz et au moins dix secondes. Les erreurs utilisent les messages
+de S-03 ; la limite est de dix créations/minute/utilisateur.
+
+Les noms sont régénérés et le transit est chiffré dans `/data/uploads`
+(API en écriture, worker en lecture seule). Cas, job et audit sont créés
+dans une seule transaction. Le worker consomme la file FIFO avec
+`FOR UPDATE SKIP LOCKED`, un seul job à la fois. Il exécute ingestion →
+préparation → caractéristiques → prédiction → validation → explication →
+finalisation. Chaque étape lit et vérifie son parent via la traçabilité,
+stocke les fichiers chiffrés et ancre le manifeste sous son identité Fabric.
+
+**T3.5 utilise sept agents factices : les sorties intermédiaires sont des
+placeholders, sans modèle clinique ni LLM.** Le parcours normal produit sept
+artefacts et la décision `revision_requise`. Une exception ou un rejet arrête
+les étapes dépendantes et produit un résultat final `rejete` motivé et ancré.
+Si l'ancrage échoue après une tentative et trois réessais (1/2/4 s), le cas
+passe en `erreur_ancrage` et aucune décision finale n'est émise. Le traitement
+réel, la pseudonymisation et l'entraînement relèvent des tâches T3.6–T3.12.
+Utiliser uniquement des entrées publiques ou synthétiques pour cette tranche.
+
+`ArtifactStore` chiffre en AES-256-GCM avec un nonce aléatoire de 12 octets
+et l'AAD `artifact_id|name`. `TraceabilityTool.record` écrit les fichiers,
+commite la ligne SQL `en_attente`, appelle Fabric, puis enregistre `ancre`
+avec le reçu de transaction. Le rejeu conserve les identifiants et refuse un
+contenu différent. Les lectures vérifient le manifeste contre Fabric et les
+fichiers contre leurs empreintes. Le reçu `GetArtifactReceipt` est une requête
+en lecture seule ; aucun contenu ECG/rapport ni clé AES n'est écrit sur la chaîne.
+
+Les checkpoints LangGraph sont synchrones dans le schéma PostgreSQL
+`langgraph` et contiennent seulement identifiants, états et codes de motif.
+Le heartbeat reste actif pendant une étape longue. Après cinq minutes sans
+heartbeat, un job est remis en file pour reprise ; trois tentatives épuisées
+le font échouer. Une interruption entre ancrage et checkpoint peut rejouer
+l'étape : l'artefact et son entrée de journal restent idempotents. Un ancien
+worker perd le droit de terminer ou de faire échouer le cas.
+
+`GET /api/v1/cases/{id}/agent-logs` permet aux trois rôles authentifiés de
+consulter les agents, entrées/sorties, statuts et durées ; un cas absent
+renvoie 404. L'API ne lance jamais le graphe et le pipeline n'appelle pas la carte.
+
+```powershell
+uv run --locked pytest tests/storage tests/pipeline tests/api/test_cases_create.py tests/api/test_pipeline_flow.py -q
+```
+
+Les tests utilisent PostgreSQL, AES-GCM et LangGraph réels. Le parcours HTTP
+traverse FastAPI/JWT, le client Python, Fastify et le contrat TypeScript
+Provenance, avec l'état et les certificats Fabric simulés en mémoire. Il
+vérifie sept ancrages, parents, identités, reçus distincts et accès au journal.
+Il ne constitue pas une validation sur un réseau Fabric déployé ; celle-ci
+reste distincte de la suite locale, comme les tests sur la carte.
 
 ## Source des données
 

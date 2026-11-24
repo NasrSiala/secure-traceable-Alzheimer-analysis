@@ -34,6 +34,7 @@ def test_preparation_is_repeatable_without_replacing_secrets(
     preparation.prepare(stack_root)
     original_environment = (stack_root / ".env").read_bytes()
     original_tokens = (stack_root / "secrets" / "agent-tokens.json").read_bytes()
+    original_key = (stack_root / "secrets" / "artifact-key.hex").read_bytes()
     preparation.prepare(stack_root)
     assert (stack_root / ".env").read_bytes() == original_environment
     assert (
@@ -43,6 +44,9 @@ def test_preparation_is_repeatable_without_replacing_secrets(
     tokens = json.loads(original_tokens)
     assert len(tokens) == 9 and len(set(tokens.values())) == 9
     assert values["APP_API_PASSWORD"] != values["APP_WORKER_PASSWORD"]
+    assert len(bytes.fromhex(values["ARTIFACT_KEY"])) == 32
+    assert (stack_root / "secrets" / "artifact-key.hex").read_bytes() == original_key
+    assert original_key.decode().strip() == values["ARTIFACT_KEY"]
     assert "postgresql://app_api:" in values["DATABASE_URL_API"]
     assert "postgresql://app_worker:" in values["DATABASE_URL_WORKER"]
     assert tokens["verifier"] == values["AGENT_TOKEN_VERIFIER"]
@@ -88,3 +92,47 @@ def test_mismatching_tokens_are_not_overwritten(
     with pytest.raises(ValueError, match="diffèrent"):
         preparation.prepare(stack_root)
     assert tokens.read_text(encoding="utf-8") == '{"verifier":"existing-token"}'
+
+
+def test_mismatching_artifact_key_is_preserved(preparation, stack_root, monkeypatch):
+    monkeypatch.setattr(preparation, "prepare_tls", lambda _: None)
+    preparation.prepare(stack_root)
+    key = stack_root / "secrets" / "artifact-key.hex"
+    key.write_text("a" * 64 + "\n", encoding="ascii")
+    with pytest.raises(ValueError, match="clé AES"):
+        preparation.prepare(stack_root)
+    assert key.read_text() == "a" * 64 + "\n"
+
+
+def test_artifact_key_file_is_used_without_rotating_environment(
+    preparation, stack_root, monkeypatch
+):
+    monkeypatch.setattr(preparation, "prepare_tls", lambda _: None)
+    values = preparation.prepare_environment(stack_root)
+    source = stack_root / "private-key.hex"
+    source.write_text(values["ARTIFACT_KEY"], encoding="ascii")
+    env_file = stack_root / ".env"
+    env_file.write_text(
+        env_file.read_text().replace(
+            "ARTIFACT_KEY_FILE=", "ARTIFACT_KEY_FILE=private-key.hex"
+        ),
+        encoding="utf-8",
+    )
+    original = env_file.read_bytes()
+    preparation.prepare(stack_root)
+    assert env_file.read_bytes() == original
+    assert (
+        stack_root / "secrets" / "artifact-key.hex"
+    ).read_text().strip() == source.read_text()
+
+
+def test_missing_aes_key_in_existing_environment_is_not_generated(
+    preparation, stack_root
+):
+    values = preparation.prepare_environment(stack_root)
+    env_file = stack_root / ".env"
+    env_file.write_text(env_file.read_text().replace(values["ARTIFACT_KEY"], ""))
+    original = env_file.read_bytes()
+    with pytest.raises(ValueError, match="ARTIFACT_KEY"):
+        preparation.prepare(stack_root)
+    assert env_file.read_bytes() == original

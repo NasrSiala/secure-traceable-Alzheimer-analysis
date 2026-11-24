@@ -20,8 +20,9 @@ from starlette.concurrency import run_in_threadpool
 
 from saam.api.auth import current_user, error_response
 from saam.audit.events import case_created
-from saam.cases import CaseRateLimited, CaseService
+from saam.cases import CaseNotFound, CaseRateLimited, CaseService
 from saam.identity.auth import AuthError, User
+from saam.pipeline.logs import list_for_case
 from saam.registry import active_refs
 from saam.traceability import UploadStaging, upload_text
 
@@ -235,6 +236,21 @@ def register_cases(
     app: FastAPI, service: CaseService, uploads: UploadStaging | None
 ) -> None:
     app.state.cases, app.state.uploads = service, uploads
+
+    @app.get("/api/v1/cases/{case_id}/agent-logs")
+    def agent_logs(case_id: str) -> JSONResponse:
+        try:
+            case = service.get_case(case_id)
+            rows = list_for_case(service.database_url, str(case["id"]))
+        except CaseNotFound:
+            return error_response(AuthError(404, "NOT_FOUND", "Cas introuvable."))
+        except psycopg.Error:
+            return error_response(
+                AuthError(
+                    503, "SERVICE_UNAVAILABLE", "Service indisponible. Réessayer."
+                )
+            )
+        return JSONResponse(content=rows, headers={"Cache-Control": "no-store"})
 
     @app.exception_handler(UploadError)
     async def upload_error(request: Request, error: UploadError) -> JSONResponse:
