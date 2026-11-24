@@ -5,12 +5,18 @@ from fastapi.responses import JSONResponse
 
 from saam.api.auth import register_auth
 from saam.api.authz import AuthorizedRoute, assert_route_policies
+from saam.api.cases import register_cases
 from saam.api.health import HealthProbe, HealthResponse, SystemProbe
+from saam.cases import CaseService
 from saam.identity.auth import IdentityService
+from saam.traceability import UploadStaging
 
 
 def create_app(
-    probe: HealthProbe | None = None, identity: IdentityService | None = None
+    probe: HealthProbe | None = None,
+    identity: IdentityService | None = None,
+    cases: CaseService | None = None,
+    uploads: UploadStaging | None = None,
 ) -> FastAPI:
     app = FastAPI(
         title="SAAMSTIAHF",
@@ -38,6 +44,7 @@ def create_app(
     register_auth(
         app, identity if identity is not None else IdentityService.from_environment()
     )
+    register_cases(app, cases or CaseService(app.state.identity.database_url), uploads)
     assert_route_policies(app)
     return app
 

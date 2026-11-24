@@ -109,6 +109,23 @@ Le schéma des enregistrements et historiques on-chain reste inchangé.
 Le réseau doit déployer le chaincode de ce commit et garder l'historique
 Fabric activé (configuré explicitement sur les deux pairs).
 
+`POST /api/v1/cases` (T3.4) accepte un multipart `ecg_files[]`,
+`csv_sampling_rate` pour un CSV, et `report_file` ou `report_text` facultatif.
+Il valide les 12 dérivations, la durée minimale de 10 secondes, la fréquence
+50–10 000 Hz et les 20 Mo d'ECG ; le rapport UTF-8 est limité à 10 000 caractères.
+Les messages reprennent S-03. Operator/admin peuvent créer ; auditor est refusé.
+La réponse 202 contient id, case_ref et status=en_attente, avec un header Location.
+
+Le transit API/worker reste chiffré dans le volume `/data/uploads` : l'API écrit
+et le worker lit. Le volume d'artefacts reste en lecture seule pour l'API.
+Les noms sont régénérés ; les références internes WFDB sont ajustées.
+Cas, job et événement d'audit sont insérés dans la même transaction, avec
+rollback du nouveau transit en cas d'échec. Une limite de dix créations par
+minute/utilisateur est partagée entre instances via PostgreSQL.
+Nginx laisse une marge pour le multipart et transmet sans mise en tampon sur disque.
+
+Vérification : `uv run --locked pytest tests/api/test_cases_create.py -q`.
+
 `saam.hashing` fournit `canonical_manifest`, `artifact_hash` et `file_hash`
 (IF-05, T3.1). L'empreinte de l'artefact est le SHA-256 du manifeste JCS
 RFC 8785 : fichiers triés par nom, flottants arrondis à six décimales.

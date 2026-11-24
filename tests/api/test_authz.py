@@ -36,6 +36,13 @@ MATRIX = [
 
 def matrix_app(service):
     app = create_app(identity=service)
+    # La matrice isole les gardes avec ses handlers, même après ajout du métier.
+    mocked_paths = {"/api/v1" + path for _, path, _ in MATRIX if path != "/me"}
+    app.router.routes[:] = [
+        route
+        for route in app.router.routes
+        if getattr(route, "path", None) not in mocked_paths
+    ]
     for method, path, _ in MATRIX:
         if path != "/me":
             # Handlers de test seulement ; les fonctions métier restent aux T3/T4.

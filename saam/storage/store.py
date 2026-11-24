@@ -34,7 +34,7 @@ class ArtifactStore:
         self._cipher = AESGCM(key)
 
     @classmethod
-    def from_environment(cls) -> ArtifactStore:
+    def from_environment(cls, root: Path | None = None) -> ArtifactStore:
         try:
             encoded = os.environ.get("ARTIFACT_KEY", "")
             key_file = os.environ.get("ARTIFACT_KEY_FILE")
@@ -47,7 +47,9 @@ class ArtifactStore:
             raise ValueError(
                 "Configurer ARTIFACT_KEY avec 64 caractères hexadécimaux."
             ) from None
-        return cls(Path(os.environ.get("ARTIFACT_ROOT", "/data/artifacts")), key)
+        return cls(
+            root or Path(os.environ.get("ARTIFACT_ROOT", "/data/artifacts")), key
+        )
 
     def path(self, artifact_id: str, name: str) -> Path:
         try:

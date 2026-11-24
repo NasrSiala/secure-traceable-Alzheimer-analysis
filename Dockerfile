@@ -17,8 +17,8 @@ COPY migrations ./migrations
 COPY scripts/seed.py ./scripts/seed.py
 RUN python -m compileall -q saam
 RUN groupadd --gid 1000 saam && useradd --uid 1000 --gid saam --no-create-home saam \
-    && mkdir -p /run/saam /data/artifacts \
-    && chown saam:saam /run/saam /data/artifacts
+    && mkdir -p /run/saam /data/artifacts /data/uploads \
+    && chown saam:saam /run/saam /data/artifacts /data/uploads
 USER saam
 
 FROM backend-base AS api

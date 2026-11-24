@@ -7,6 +7,7 @@ from .tool import (
     IntegrityError,
     TraceabilityTool,
 )
+from .uploads import UploadStaging, upload_text
 
 __all__ = [
     "AnchoringError",
@@ -14,4 +15,6 @@ __all__ = [
     "ArtifactFile",
     "IntegrityError",
     "TraceabilityTool",
+    "UploadStaging",
+    "upload_text",
 ]

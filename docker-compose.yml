@@ -27,6 +27,8 @@ services:
     environment:
       DATABASE_URL_API: ${DATABASE_URL_API:?Connexion app_api requise}
       JWT_SECRET: ${JWT_SECRET:-}
+      ARTIFACT_KEY: ${ARTIFACT_KEY:-}
+      UPLOAD_ROOT: /data/uploads
       AUTH_ORIGIN: ${AUTH_ORIGIN:-https://localhost}
       LEDGER_GATEWAY_URL: http://ledger-gateway:8080
       AGENT_TOKEN_VERIFIER: ${AGENT_TOKEN_VERIFIER:?Jeton verifier requis}
@@ -35,6 +37,7 @@ services:
     volumes:
       - worker-status:/run/saam:ro
       - artifact-store:/data/artifacts:ro
+      - uploads:/data/uploads
     depends_on:
       postgres: {condition: service_healthy}
       worker: {condition: service_started}
@@ -59,6 +62,7 @@ services:
     volumes:
       - worker-status:/run/saam
       - artifact-store:/data/artifacts
+      - uploads:/data/uploads:ro
     depends_on:
       postgres: {condition: service_healthy}
     healthcheck:
@@ -140,6 +144,7 @@ networks:
 volumes:
   postgres-data:
   artifact-store:
+  uploads:
   worker-status:
 
 secrets:
