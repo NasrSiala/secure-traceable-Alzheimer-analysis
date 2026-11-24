@@ -82,6 +82,17 @@ PostgreSQL isolés de T1.11 et peut aussi fournir Node et GHDL sous Windows.
 
 ## Hachage des artefacts
 
+Le stockage `saam.storage.ArtifactStore` (T3.2) chiffre chaque fichier avec
+AES-256-GCM. Le format sur disque est nonce de 12 octets, contenu chiffré et
+tag de 16 octets ; l'AAD est `artifact_id|name`. La clé de 32 octets est injectée
+ou chargée depuis `ARTIFACT_KEY` (64 caractères hexadécimaux) ou le fichier
+secret `ARTIFACT_KEY_FILE`. `ARTIFACT_ROOT` désigne la racine du stockage.
+Les fichiers sont écrits atomiquement ; un nonce, contenu ou tag altéré, une
+mauvaise clé ou une substitution de fichier provoquent `DecryptionError`.
+Les chemins traversants et liens symboliques sont refusés.
+
+Vérification : `uv run --locked pytest tests/storage -q`.
+
 `saam.hashing` fournit `canonical_manifest`, `artifact_hash` et `file_hash`
 (IF-05, T3.1). L'empreinte de l'artefact est le SHA-256 du manifeste JCS
 RFC 8785 : fichiers triés par nom, flottants arrondis à six décimales.
