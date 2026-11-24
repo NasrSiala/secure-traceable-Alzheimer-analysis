@@ -3,6 +3,7 @@ const path = require("node:path");
 const { buildApp } = require(path.resolve("ledger-gateway/dist/app.js"));
 const { TokenDirectory } = require(path.resolve("ledger-gateway/dist/tokens.js"));
 const records = new Map();
+const receipts = new Map();
 const models = new Map();
 const ledger = {
   async create(identity, payload) {
@@ -12,6 +13,7 @@ const ledger = {
     if (record.parentArtifactId !== null) throw new Error("chaincode response 500, PARENT_MISSING: parent missing");
     const anchored = { ...record, docType: "ARTIFACT", creatorMspId: "Org1MSP", creatorId: "synthetic-agent", txTimestamp: record.createdAt };
     records.set(record.artifactId, anchored);
+    receipts.set(record.artifactId, { txId: require("node:crypto").randomBytes(32).toString("hex"), sha256: record.sha256 });
     return JSON.stringify(anchored);
   },
   async read(_identity, id) {
@@ -21,6 +23,10 @@ const ledger = {
   },
   async history(_identity, caseId) {
     return JSON.stringify([...records.values()].filter(record => record.caseId === caseId));
+  },
+  async receipt(_identity, id) {
+    if (!receipts.has(id)) throw new Error("chaincode response 500, NOT_FOUND: receipt absent");
+    return JSON.stringify(receipts.get(id));
   },
   async registerModel(identity, payload) {
     if (identity !== "model-admin") throw new Error("chaincode response 500, FORBIDDEN: model-admin required");

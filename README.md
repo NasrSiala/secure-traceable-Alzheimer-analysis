@@ -93,6 +93,22 @@ Les chemins traversants et liens symboliques sont refusés.
 
 Vérification : `uv run --locked pytest tests/storage -q`.
 
+`TraceabilityTool.record` (T3.3) écrit les fichiers chiffrés et le manifeste,
+commite les lignes PostgreSQL en `en_attente`, puis ancre avec une tentative
+et trois réessais (attentes 1/2/4 s). Un doublon n'est accepté que si la preuve
+Fabric correspond au même artefact. Une erreur définitive appelle le service
+des cas injecté par `on_failure` ; la traçabilité ne modifie pas ses tables.
+Les lectures comparent le manifeste et ses fichiers à l'empreinte Fabric,
+indépendamment de la copie d'affichage PostgreSQL.
+
+La passerelle expose l'identifiant de transaction dans le header
+`X-Fabric-Transaction-Id` des écritures/lectures d'artefacts ; le client Python
+le rend dans `txId`. La requête Fabric en lecture seule `GetArtifactReceipt`
+le retrouve dans l'historique de la clé, y compris après une réponse perdue.
+Le schéma des enregistrements et historiques on-chain reste inchangé.
+Le réseau doit déployer le chaincode de ce commit et garder l'historique
+Fabric activé (configuré explicitement sur les deux pairs).
+
 `saam.hashing` fournit `canonical_manifest`, `artifact_hash` et `file_hash`
 (IF-05, T3.1). L'empreinte de l'artefact est le SHA-256 du manifeste JCS
 RFC 8785 : fichiers triés par nom, flottants arrondis à six décimales.

@@ -200,6 +200,13 @@ class LedgerClient:
                 raise LedgerUnavailable()
         elif not isinstance(body, dict) or "error" in body:
             raise LedgerUnavailable()
+        transaction_id = response.headers.get("X-Fabric-Transaction-Id")
+        if transaction_id is not None:
+            if not isinstance(body, dict) or not re.fullmatch(
+                r"[0-9a-f]{64}", transaction_id
+            ):
+                raise LedgerUnavailable()
+            body = body | {"txId": transaction_id}
         return cast(Record | list[Record], body)
 
     def create_record(self, record: Mapping[str, Any]) -> Record:

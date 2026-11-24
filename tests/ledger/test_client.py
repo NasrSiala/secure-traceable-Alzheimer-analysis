@@ -82,7 +82,11 @@ def test_real_gateway_case_history(gateway) -> None:
     with LedgerClient(url, agent) as writer:
         created = writer.create_record(record)
     with LedgerClient(url, verifier) as reader:
-        assert reader.get_case_history(record["caseId"]) == [created]
+        assert len(created["txId"]) == 64
+        # Le reçu est une métadonnée HTTP ; le schéma des historiques reste fermé.
+        assert reader.get_case_history(record["caseId"]) == [
+            {k: v for k, v in created.items() if k != "txId"}
+        ]
         assert reader.get_case_history("CASE-" + str(uuid4())) == []
 
 
