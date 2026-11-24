@@ -80,6 +80,24 @@ avec Git Bash et Node disponibles. Les options `--fabric` et `--board` demandent
 respectivement le réseau Fabric et la carte. Docker est requis par les tests
 PostgreSQL isolés de T1.11 et peut aussi fournir Node et GHDL sous Windows.
 
+## Hachage des artefacts
+
+`saam.hashing` fournit `canonical_manifest`, `artifact_hash` et `file_hash`
+(IF-05, T3.1). L'empreinte de l'artefact est le SHA-256 du manifeste JCS
+RFC 8785 : fichiers triés par nom, flottants arrondis à six décimales.
+La canonisation conserve les identifiants et horodatages fournis et ne modifie
+pas le manifeste en mémoire.
+
+Le producteur prépare les fichiers JSON avec `canonical_json` et les textes
+avec `canonical_text` (UTF-8 NFC). `file_hash` hache les octets exacts ; les
+fichiers binaires CSV/WFDB/NPY doivent déjà respecter leur format canonique.
+Le manifeste consigne la taille et l'empreinte des octets clairs ainsi préparés.
+Le stockage chiffré et l'ancrage sont les étapes T3.2 et T3.3.
+
+`uv run --locked pytest tests/hashing -q` vérifie notamment un manifeste
+de référence et son empreinte 100 fois. La CI exécute cette même suite sur
+Ubuntu et Windows pour vérifier NFR-12.
+
 La passerelle écoute par défaut sur le port 8080. Ses jetons sont lus dans
 le fichier JSON `AGENT_TOKEN_FILE` ; la configuration et les identités sont
 décrites dans `ledger-gateway/.env.example`.
