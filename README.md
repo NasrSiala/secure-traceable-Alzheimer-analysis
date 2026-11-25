@@ -574,6 +574,50 @@ vérifie sept ancrages, parents, identités, reçus distincts et accès au journ
 Il ne constitue pas une validation sur un réseau Fabric déployé ; celle-ci
 reste distincte de la suite locale, comme les tests sur la carte.
 
+## Consultation des cas — T3.13
+
+Les trois rôles authentifiés lisent tous les cas, y compris ceux créés par
+un autre opérateur. Les réponses sont privées (`Cache-Control: no-store`).
+
+- `GET /api/v1/cases?page=1&size=20&status=en_cours` renvoie
+  `items`, `total`, `page`, `size`. La page commence à 1, la taille est
+  limitée à 50 et les cas sont triés par date décroissante, puis UUID.
+  Le filtre accepte les cinq statuts du schéma ; un rejet correspond à
+  `status=termine`, `decision=rejete`.
+- `GET /api/v1/cases/{id}` accepte un UUID ou `CASE-<uuid>` et renvoie
+  les informations du cas, `artifacts`, les sept `steps`, puis les objets
+  JSON `prediction`, `validation`, `explanation`, `final_result`.
+  Une sortie encore absente ou non ancrée vaut `null`. Le résultat final
+  est présenté après la fin du cas. Les étapes distinguent `a_venir`,
+  `en_cours`, `ancre`, `echec`, `non_execute` à partir de la progression,
+  des ancrages et du journal. Les chemins de stockage et le rapport
+  original ne sont pas exposés.
+- `GET /api/v1/cases/{id}/signal?artifact=processed` lit `signal.npy`
+  float32 `[12,1000]` à 100 Hz et retourne `leads`, `time_seconds` et
+  `values` `[12,500]` à 50 Hz pour l'affichage. L'unité est `z-score` :
+  le signal traité est normalisé, ce ne sont pas des amplitudes en mV.
+  Cette décimation d'affichage ne modifie pas les fichiers ni le FIR.
+
+La lecture d'affichage déchiffre en AES-GCM et contrôle les empreintes
+locales des fichiers, sans requête Fabric (DF-03). Les empreintes et reçus
+affichés proviennent de PostgreSQL ; cette lecture n'est pas une preuve
+d'intégrité du registre. Le contrôle on-chain relève de T4.1.
+Un cas absent renvoie 404, un signal pas encore produit 404
+`SIGNAL_UNAVAILABLE`, un fichier attendu absent ou corrompu 503
+`ARTIFACT_UNAVAILABLE`, et une base indisponible 503 `SERVICE_UNAVAILABLE`.
+Les paramètres invalides donnent 400 ; aucun contenu privé n'est renvoyé
+dans les erreurs. Les sept agents factices de T3.5 ne produisent pas
+`signal.npy` : le tracé attend l'agent de préparation T3.7.
+
+```powershell
+uv run --locked pytest tests/api/test_cases_read.py -q -s
+```
+
+Cette suite utilise PostgreSQL temporaire et des fichiers synthétiques
+chiffrés. Elle mesure aussi 500 lectures avec cinq comptes simultanés,
+en exigeant un p95 ≤ 300 ms sur l'API locale. Ce test passe par TestClient ;
+la mesure réseau sur la machine de démonstration reste à T5.4.
+
 ## Source des données
 
 Utiliser uniquement les données publiques

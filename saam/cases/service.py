@@ -42,15 +42,34 @@ class CaseService:
             options="-c statement_timeout=5000",
         )
 
-    def get_case(self, case_id: str) -> dict[str, Any]:
+    def list_cases(
+        self, page: int, size: int, status: str | None = None
+    ) -> dict[str, Any]:
+        """Liste récente et total calculés dans le même instantané SQL."""
+        with self.connect() as db:
+            db.execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+            total = db.execute(
+                "SELECT count(*) AS total FROM cases WHERE (%s::case_status IS NULL OR status=%s::case_status)",
+                (status, status),
+            ).fetchone()
+            rows = db.execute(
+                "SELECT id,case_ref,status,created_at,predicted_class,confidence,decision FROM cases WHERE (%s::case_status IS NULL OR status=%s::case_status) ORDER BY created_at DESC,id DESC LIMIT %s OFFSET %s",
+                (status, status, size, (page - 1) * size),
+            ).fetchall()
+        assert total is not None
+        return {"items": rows, "total": total["total"], "page": page, "size": size}
+
+    def get_case(
+        self, case_id: str, *, db: psycopg.Connection[dict[str, Any]] | None = None
+    ) -> dict[str, Any]:
         try:
             identifier = str(UUID(case_id.removeprefix("CASE-")))
         except ValueError:
             raise CaseNotFound("Cas introuvable.") from None
-        with self.connect() as db:
-            row = db.execute(
-                "SELECT * FROM cases WHERE id=%s", (identifier,)
-            ).fetchone()
+        if db is None:
+            with self.connect() as connection:
+                return self.get_case(identifier, db=connection)
+        row = db.execute("SELECT * FROM cases WHERE id=%s", (identifier,)).fetchone()
         if not row:
             raise CaseNotFound("Cas introuvable.")
         return row

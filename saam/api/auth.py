@@ -133,12 +133,16 @@ def register_auth(app: FastAPI, service: IdentityService) -> None:
         # Ne jamais renvoyer l'entrée brute de Pydantic (peut contenir un mot de passe).
         issue = error.errors()[0]
         message = (
-            "Champ obligatoire."
-            if issue["type"] == "missing"
+            "Paramètres de lecture invalides."
+            if issue["loc"][0] == "query"
             else (
-                "Adresse e-mail invalide."
-                if issue["loc"][-1] == "email"
-                else "Données de connexion invalides."
+                "Champ obligatoire."
+                if issue["type"] == "missing"
+                else (
+                    "Adresse e-mail invalide."
+                    if issue["loc"][-1] == "email"
+                    else "Données de connexion invalides."
+                )
             )
         )
         return error_response(AuthError(400, "BAD_REQUEST", message))

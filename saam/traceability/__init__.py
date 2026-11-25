@@ -1,5 +1,6 @@
 """Stockage, hachage et ancrage des artefacts (SVC-traceability)."""
 
+from .reader import ArtifactReader
 from .tool import (
     AnchoringError,
     Artifact,
@@ -14,6 +15,7 @@ __all__ = [
     "AnchoringError",
     "Artifact",
     "ArtifactFile",
+    "ArtifactReader",
     "IntegrityError",
     "TraceabilityTool",
     "UploadStaging",

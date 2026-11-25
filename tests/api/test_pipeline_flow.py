@@ -15,7 +15,7 @@ from saam.cases import CaseService
 from saam.ledger import LedgerClient
 from saam.pipeline.graph import STAGES, GraphRunner
 from saam.storage import ArtifactStore
-from saam.traceability import TraceabilityTool
+from saam.traceability import ArtifactReader, TraceabilityTool
 from tests.api.test_cases_create import cases_client as _cases_client
 from tests.api.test_cases_create import headers, submit
 
@@ -148,6 +148,17 @@ def test_creation_to_seven_anchors_and_readable_journal(
         ).fetchall()
     assert len(rows) == 7 and all(row["anchor_status"] == "ancre" for row in rows)
     assert {row["tx_id"] for row in rows} == receipts
+    client.app.state.artifact_reader = ArtifactReader(store)
+    detail = client.get(f"/api/v1/cases/{case_id}", headers=authorization)
+    assert detail.status_code == 200
+    assert detail.json()["final_result"]["simulation"] is True
+    assert detail.json()["decision"] == "revision_requise"
+    assert all(step["status"] == "ancre" for step in detail.json()["steps"])
+    # Le graphe factice ne produit pas de signal traité ; ne pas fabriquer un ECG.
+    assert (
+        client.get(f"/api/v1/cases/{case_id}/signal", headers=authorization).status_code
+        == 404
+    )
     for role in ("operator", "admin", "auditor"):
         logs = client.get(
             f"/api/v1/cases/{case_id}/agent-logs", headers=headers(client, role)
