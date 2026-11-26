@@ -290,7 +290,8 @@ pytestmark_make = pytest.mark.skipif(shutil.which("make") is None, reason="no ma
 
 @pytestmark_make
 def test_without_any_simulator_the_default_target_says_skipped_and_exits_zero() -> None:
-    result = _make(env=_without_tools())
+    # /usr/bin contient aussi GHDL en CI : isoler explicitement le cas sans outils.
+    result = _make("HAVE_GHDL=", "HAVE_COCOTB=", "HAVE_XSIM=", env=_without_tools())
     combined = result.stdout + result.stderr
     assert result.returncode == 0, combined[-1200:]
     assert "SKIPPED" in combined
@@ -300,7 +301,12 @@ def test_without_any_simulator_the_default_target_says_skipped_and_exits_zero() 
 
 @pytest.mark.skipif(shutil.which("make") is None, reason="no make")
 def test_when_the_simulation_is_required_a_missing_simulator_is_a_failure() -> None:
-    result = _make(env={**_without_tools(), "SAAM_HW_SIM_REQUIRED": "1"})
+    result = _make(
+        "HAVE_GHDL=",
+        "HAVE_COCOTB=",
+        "HAVE_XSIM=",
+        env={**_without_tools(), "SAAM_HW_SIM_REQUIRED": "1"},
+    )
     assert result.returncode != 0
     assert "SKIPPED" not in result.stdout
 
@@ -344,7 +350,7 @@ BENCH = COCOTB_BENCH.read_text(encoding="utf-8") if COCOTB_BENCH.exists() else "
 
 
 def test_the_cocotb_bench_compares_with_hashlib_and_covers_the_required_cases() -> None:
-    assert "import hashlib" in BENCH
+    assert "from saam.hashing import file_hash" in BENCH
     assert BENCH.count("@cocotb.test") >= 5
     for needle in ("abc", "reset", "two messages", "block"):
         assert needle in BENCH.lower(), needle

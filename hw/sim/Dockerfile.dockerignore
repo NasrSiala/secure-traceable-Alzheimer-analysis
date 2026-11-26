@@ -1,0 +1,14 @@
+**
+!pyproject.toml
+!uv.lock
+!README.md
+!saam/
+!saam/**
+!hw/
+!hw/sim/
+!hw/sim/**
+**/__pycache__/
+hw/sim/sim_build/
+hw/sim/results.xml
+hw/sim/*.vcd
+hw/sim/*.ghw
