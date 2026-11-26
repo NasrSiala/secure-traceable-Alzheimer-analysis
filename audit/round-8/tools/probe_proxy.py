@@ -17,8 +17,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tests" / "integrity"))
 
-from gateway_history import GatewayHistory, LedgerAccessError
-from synthetic_case import synthetic_case_id
+from gateway_history import GatewayHistory, LedgerAccessError  # noqa: E402 — après ajout du chemin des aides de test.
+from synthetic_case import synthetic_case_id  # noqa: E402 — après ajout du chemin des aides de test.
 
 seen: list[str] = []
 

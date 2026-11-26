@@ -69,6 +69,7 @@ describe("the contract exposes RegisterModel and GetModel next to the artifact t
     expect(summary).toEqual({
       CreateArtifactRecord: { kind: "submit", parameters: ["json"] },
       GetArtifactRecord: { kind: "evaluate", parameters: ["artifactId"] },
+      GetArtifactReceipt: { kind: "evaluate", parameters: ["artifactId"] },
       GetCaseHistory: { kind: "evaluate", parameters: ["caseId"] },
       RegisterModel: { kind: "submit", parameters: ["json"] },
       GetModel: { kind: "evaluate", parameters: ["name", "version"] },
