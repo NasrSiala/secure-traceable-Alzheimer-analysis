@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
@@ -126,7 +127,15 @@ class CaseService:
             if not row:
                 raise InvalidTransition("Le worker ne détient plus ce job.")
 
-    def complete_case(self, case_id: str, decision: str, *, job: Job) -> None:
+    def complete_case(
+        self,
+        case_id: str,
+        decision: str,
+        *,
+        job: Job,
+        on_complete: Callable[[psycopg.Connection[dict[str, Any]], int], None]
+        | None = None,
+    ) -> None:
         if decision not in {"accepte", "revision_requise", "rejete"}:
             raise ValueError("Décision invalide.")
         with self.connect() as db:
@@ -137,11 +146,14 @@ class CaseService:
             if not lease:
                 raise InvalidTransition("Le worker ne détient plus ce job.")
             row = db.execute(
-                "UPDATE cases SET status='termine',decision=%s,completed_at=now() WHERE id=%s AND status='en_cours' RETURNING id",
+                "UPDATE cases SET status='termine',decision=%s,completed_at=now() WHERE id=%s AND status='en_cours' RETURNING created_at,completed_at",
                 (decision, case_id),
             ).fetchone()
             if not row:
                 raise InvalidTransition("Le cas ne peut pas être terminé.")
+            if on_complete is not None:
+                elapsed = row["completed_at"] - row["created_at"]
+                on_complete(db, max(0, int(elapsed.total_seconds() * 1000)))
 
     def fail_case(
         self, case_id: str, status: str = "erreur_ancrage", *, job: Job | None = None

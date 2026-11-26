@@ -1,9 +1,12 @@
 """Historique des vérifications, lu et écrit par SVC-verification."""
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
+
+import psycopg
 
 from saam.cases import CaseService
 
@@ -21,6 +24,11 @@ class VerificationHistory:
         started_at: datetime,
         ledger_reachable: bool,
         items: tuple[VerificationItem, ...],
+        *,
+        on_recorded: Callable[
+            [psycopg.Connection[dict[str, Any]], dict[str, Any]], None
+        ]
+        | None = None,
     ) -> dict[str, Any]:
         counts = Counter(item.status for item in items)
         details = [asdict(item) for item in items]
@@ -66,6 +74,8 @@ class VerificationHistory:
                         for item in items
                     ],
                 )
+            if on_recorded is not None:
+                on_recorded(db, row)
         return row | {"items": details}
 
     def list_for_case(self, case_id: str, page: int, size: int) -> dict[str, Any]:

@@ -221,7 +221,7 @@ def persist_case(app: FastAPI, user: User, upload: ValidatedUpload) -> dict[str,
                 model_id=model_id,
                 config_id=config_id,
             )
-            case_created(db, user.id, case_id, upload.summary())
+            case_created(db, user.id, case_id, user.role, upload.summary())
         return result
     except Exception:
         if staged:

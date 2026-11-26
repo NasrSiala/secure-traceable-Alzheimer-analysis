@@ -18,6 +18,7 @@ from langgraph.graph import END, START, StateGraph
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
+from saam.audit.events import pipeline_completed
 from saam.cases import CaseService, InvalidTransition, Job
 from saam.traceability import (
     AnchoringError,
@@ -408,7 +409,14 @@ class GraphRunner:
         )
         if step == "finalization":
             try:
-                self.cases.complete_case(state["case_id"], updated["decision"], job=job)
+                self.cases.complete_case(
+                    state["case_id"],
+                    updated["decision"],
+                    job=job,
+                    on_complete=lambda db, duration: pipeline_completed(
+                        db, job.case_id, updated["decision"], duration
+                    ),
+                )
             except InvalidTransition:
                 raise WorkerInterrupted("Lease perdu.") from None
             updated["status"] = "termine"

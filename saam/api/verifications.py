@@ -10,6 +10,7 @@ from pydantic import BaseModel, field_validator
 
 from saam.api.auth import current_user
 from saam.api.history import LedgerFactory
+from saam.audit.events import integrity_check_completed
 from saam.cases import CaseNotFound, CaseService
 from saam.identity.auth import AuthError, IdentityService, User
 from saam.ledger import LedgerClient
@@ -78,7 +79,14 @@ def register_verifications(
                 reachable, items = CaseVerifier(cases, artifacts, ledger).inspect_case(
                     str(case["id"])
                 )
-            row = history.record(str(case["id"]), user.id, started_at, reachable, items)
+            row = history.record(
+                str(case["id"]),
+                user.id,
+                started_at,
+                reachable,
+                items,
+                on_recorded=integrity_check_completed,
+            )
         except CaseNotFound:
             raise AuthError(404, "NOT_FOUND", "Cas introuvable.") from None
         except (OSError, ValueError, psycopg.Error):

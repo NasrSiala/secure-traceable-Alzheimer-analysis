@@ -75,7 +75,13 @@ def test_csv_creation_queues_a_job_and_audit_with_encrypted_files(cases_client, 
             "SELECT payload FROM audit_events WHERE case_id=%s AND event_type='case_created'",
             (result["id"],),
         ).fetchone()[0]
-        assert payload == {"ecg_format": "csv", "sampling_hz": 100, "has_report": True}
+        assert payload == {
+            "case_id": result["id"],
+            "user_role": role,
+            "ecg_format": "csv",
+            "sampling_hz": 100,
+            "has_report": True,
+        }
 
 
 def test_wfdb_pair_is_validated_and_references_are_regenerated(cases_client):

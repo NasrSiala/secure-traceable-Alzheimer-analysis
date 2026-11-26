@@ -15,6 +15,7 @@ from uuid import UUID
 import psycopg
 from psycopg.rows import dict_row
 
+from saam.audit.events import anchoring_failed, artifact_anchored
 from saam.hashing import artifact_hash, canonical_json, canonical_manifest, file_hash
 from saam.ledger import (
     DuplicateRecord,
@@ -222,6 +223,7 @@ class TraceabilityTool:
                 "parentArtifactId": artifact.parent_id,
                 "offchainRef": "artifact://" + artifact.id,
             }
+            failure_code = "LEDGER_UNAVAILABLE"
             for attempt in range(1, 5):
                 db.execute(
                     "UPDATE artifacts SET anchor_attempts=%s WHERE id=%s",
@@ -241,6 +243,7 @@ class TraceabilityTool:
                     row = db.execute(
                         "SELECT * FROM artifacts WHERE id=%s", (artifact.id,)
                     ).fetchone()
+                    artifact_anchored(db, artifact.case_id, artifact.type, tx_id)
                     db.commit()
                     assert row is not None
                     return row
@@ -249,12 +252,13 @@ class TraceabilityTool:
                         self.sleep(float(2 ** (attempt - 1)))
                         continue
                 except (LedgerError, AnchoringError):
-                    pass
+                    failure_code = "RECORD_REJECTED"
                 break
             db.execute(
                 "UPDATE artifacts SET anchor_status='echec',tx_id=NULL,anchored_at=NULL WHERE id=%s",
                 (artifact.id,),
             )
+            anchoring_failed(db, artifact.case_id, artifact.type, failure_code)
             db.commit()
         self.on_failure(artifact.case_id)
         raise AnchoringError(
