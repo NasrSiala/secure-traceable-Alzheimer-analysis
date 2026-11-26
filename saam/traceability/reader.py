@@ -10,9 +10,9 @@ from typing import Any
 import numpy as np
 import psycopg
 
-from saam.hashing import canonical_manifest, file_hash
+from saam.hashing import artifact_hash, canonical_manifest, file_hash
 from saam.storage import ArtifactStore, DecryptionError
-from saam.traceability.tool import IntegrityError, _read_verified_file
+from saam.traceability.tool import IntegrityError
 
 LEADS = ("I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6")
 
@@ -67,7 +67,7 @@ class ArtifactReader:
             encoded = self.store.read(artifact_id, "manifest.json")
             manifest = json.loads(encoded)
             canonical = canonical_manifest(manifest)
-            digest = file_hash(canonical)
+            digest = file_hash(encoded)
             if (
                 encoded != canonical
                 or digest != expected_sha256
@@ -75,9 +75,16 @@ class ArtifactReader:
                 or manifest["case_id"] != case_id
                 or manifest["type"] != artifact_type
             ):
-                raise IntegrityError("Manifeste modifié.")
+                raise IntegrityError("Manifeste modifié.", computed_sha256=digest)
+            files = []
             for descriptor in manifest["files"]:
-                _read_verified_file(self.store, artifact_id, descriptor)
+                data = self.store.read(artifact_id, descriptor["name"])
+                files.append(
+                    descriptor | {"size": len(data), "sha256": file_hash(data)}
+                )
+            if files != manifest["files"]:
+                computed = artifact_hash(manifest | {"files": files})
+                raise IntegrityError("Fichier modifié.", computed_sha256=computed)
         except (DecryptionError, ValueError, RecursionError):
             raise IntegrityError("Artefact non vérifiable.") from None
         return digest

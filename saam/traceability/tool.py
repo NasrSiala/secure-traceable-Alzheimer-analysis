@@ -43,6 +43,10 @@ class AnchoringError(Exception):
 class IntegrityError(Exception):
     """Empreinte ou authentification GCM invalide."""
 
+    def __init__(self, message: str, *, computed_sha256: str | None = None) -> None:
+        super().__init__(message)
+        self.computed_sha256 = computed_sha256
+
 
 @dataclass(frozen=True)
 class ArtifactFile:
@@ -297,16 +301,10 @@ class TraceabilityTool:
         descriptor = next((f for f in manifest["files"] if f["name"] == name), None)
         if descriptor is None:
             raise FileNotFoundError("Fichier absent du manifeste.")
-        return _read_verified_file(self.store, artifact_id, descriptor)
-
-
-def _read_verified_file(
-    store: ArtifactStore, artifact_id: str, descriptor: dict[str, Any]
-) -> bytes:
-    try:
-        data = store.read(artifact_id, descriptor["name"])
-    except DecryptionError:
-        raise IntegrityError("Fichier modifié.") from None
-    if file_hash(data) != descriptor["sha256"] or len(data) != descriptor["size"]:
-        raise IntegrityError("Fichier modifié.")
-    return data
+        try:
+            data = self.store.read(artifact_id, name)
+        except DecryptionError:
+            raise IntegrityError("Fichier modifié.") from None
+        if file_hash(data) != descriptor["sha256"] or len(data) != descriptor["size"]:
+            raise IntegrityError("Fichier modifié.")
+        return data

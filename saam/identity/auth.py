@@ -83,6 +83,16 @@ class IdentityService:
             options="-c statement_timeout=5000",
         )
 
+    def display_names(self, user_ids: set[str]) -> dict[str, str]:
+        if not user_ids:
+            return {}
+        with self.connect() as db:
+            rows = db.execute(
+                "SELECT id, display_name FROM users WHERE id=ANY(%s::uuid[])",
+                (sorted(user_ids),),
+            ).fetchall()
+        return {str(row["id"]): row["display_name"] for row in rows}
+
     def session(
         self,
         connection: psycopg.Connection[dict[str, Any]],
