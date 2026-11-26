@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import os
-import shutil
 from pathlib import Path
 from typing import Any
 
@@ -57,10 +56,5 @@ class UploadStaging:
 
     def discard_new_upload(self, case_id: str) -> None:
         """Rollback d'un UUID nouvellement créé ; cible validée avant suppression."""
-        directory = self.store.path(case_id, "upload.json").parent
-        if directory.is_symlink() or not directory.resolve().is_relative_to(
-            self.store.root
-        ):
-            raise ValueError("Chemin de transit invalide.")
-        if directory.exists():
-            shutil.rmtree(directory)
+        self.store.path(case_id, "upload.json")
+        self.store.discard_bundle(case_id)

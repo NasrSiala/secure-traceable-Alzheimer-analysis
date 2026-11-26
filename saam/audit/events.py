@@ -140,3 +140,14 @@ def model_evaluated(
             "f1_macro": f1_macro,
         },
     )
+
+
+def case_purged(
+    db: psycopg.Connection[dict[str, Any]], admin_id: str, case_id: str, count: int
+) -> None:
+    _append(
+        db,
+        "case_purged",
+        actor=admin_id,
+        payload={"case_id": case_id, "nb_artefacts": count},
+    )

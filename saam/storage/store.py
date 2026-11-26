@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import tempfile
 from pathlib import Path
 from uuid import UUID
@@ -97,6 +98,11 @@ class ArtifactStore:
         finally:
             Path(temporary).unlink(missing_ok=True)
         return target.relative_to(self.root).as_posix()
+
+    def discard_bundle(self, artifact_id: str) -> None:
+        directory = self.path(artifact_id, "manifest.json").parent
+        if directory.exists():
+            shutil.rmtree(directory)
 
     def read(self, artifact_id: str, name: str) -> bytes:
         """Déchiffre et authentifie ; fichier absent = FileNotFoundError."""

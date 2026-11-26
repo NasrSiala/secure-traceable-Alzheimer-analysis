@@ -155,6 +155,32 @@ class CaseService:
                 elapsed = row["completed_at"] - row["created_at"]
                 on_complete(db, max(0, int(elapsed.total_seconds() * 1000)))
 
+    def purge(
+        self,
+        case_id: str,
+        *,
+        prepare: Callable[[psycopg.Connection[dict[str, Any]]], Callable[[], int]],
+        on_purged: Callable[[psycopg.Connection[dict[str, Any]], int], None],
+    ) -> int:
+        with self.connect() as db:
+            db.execute(
+                "SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (case_id,)
+            )
+            case = self.get_case(case_id, db=db)
+            active_job = db.execute(
+                "SELECT 1 FROM jobs WHERE case_id=%s AND status IN ('en_file','en_cours')",
+                (case["id"],),
+            ).fetchone()
+            if case["status"] in {"en_attente", "en_cours"} or active_job:
+                raise InvalidTransition(
+                    "Le traitement du cas doit être terminé avant la purge."
+                )
+            erase = prepare(db)
+            db.execute("DELETE FROM cases WHERE id=%s", (case["id"],))
+            count = erase()
+            on_purged(db, count)
+        return count
+
     def fail_case(
         self, case_id: str, status: str = "erreur_ancrage", *, job: Job | None = None
     ) -> None:

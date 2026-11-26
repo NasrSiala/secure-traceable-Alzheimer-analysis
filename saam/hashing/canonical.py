@@ -7,7 +7,7 @@ import math
 import re
 import unicodedata
 from collections.abc import Mapping
-from typing import TypeAlias
+from typing import IO, TypeAlias
 
 import rfc8785
 
@@ -125,6 +125,14 @@ def file_hash(data: bytes) -> str:
     if not isinstance(data, bytes):
         raise ValueError("Le hachage d'un fichier exige des octets.")
     return hashlib.sha256(data).hexdigest()
+
+
+def file_stream_hash(stream: IO[bytes]) -> str:
+    """Empreinte d'un fichier lu par blocs à partir de sa position courante."""
+    digest = hashlib.sha256()
+    for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+        digest.update(chunk)
+    return digest.hexdigest()
 
 
 def artifact_hash(manifest: Mapping[str, object]) -> str:

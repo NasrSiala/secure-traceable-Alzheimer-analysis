@@ -654,6 +654,72 @@ pour les pannes et le parcours complet Fastify/contrat TypeScript avec
 sur un réseau Fabric déployé. La vérification des fichiers hors chaîne
 reste à T4.1.
 
+## Sauvegarde, restauration et purge — T5.7
+
+La sauvegarde regroupe un `pg_dump`, les volumes des artefacts et des uploads
+chiffrés, les trois volumes de registre Fabric et la configuration d'enrôlement
+du réseau. Conserver le dossier de sauvegarde dans un emplacement privé. Il
+contient le registre, la base et le wallet Fabric. Conserver les fichiers
+`.env` et `secrets/` de la pile à part, dont la clé AES d'origine. Le
+manifeste enregistre uniquement l'empreinte de cette clé.
+
+Depuis Git Bash ou un shell Bash, laisser PostgreSQL démarré et arrêter le
+reste de la pile avant la sauvegarde.
+
+```bash
+docker compose stop api worker frontend ledger-gateway
+docker compose -f fabric/compose/compose.yaml --env-file fabric/.runtime/ca.env \
+  --env-file fabric/.runtime/cc.env --profile spike stop
+bash scripts/backup.sh backups/avant-demo
+```
+
+Pour restaurer, préparer une base PostgreSQL vide avec les rôles `app_api` et
+`app_worker`, puis les volumes Docker vides de la pile cible. Avec les noms de
+projet par défaut, exécuter les commandes ci-dessous.
+
+```bash
+docker network inspect saam-medtrace >/dev/null 2>&1 || docker network create \
+  --label com.docker.compose.project=saam-medtrace \
+  --label com.docker.compose.network=saam-medtrace \
+  --label saam.network=medtrace saam-medtrace
+docker compose up -d --wait postgres
+for name in artifact-store uploads; do
+  docker volume create --label com.docker.compose.project=saam-stack \
+    --label "com.docker.compose.volume=$name" "saam-stack_$name"
+done
+for name in orderer-ledger peer0-org1-ledger peer0-org2-ledger; do
+  docker volume create --label com.docker.compose.project=saam-medtrace \
+    --label "com.docker.compose.volume=$name" --label saam.network=medtrace "saam-medtrace-$name"
+done
+bash scripts/restore.sh backups/avant-demo
+docker compose -f fabric/compose/compose.yaml --env-file fabric/.runtime/ca.env \
+  --env-file fabric/.runtime/cc.env --profile spike up -d
+docker compose up -d --build --wait
+```
+
+La restauration valide les archives et la clé avant les écritures. En cas
+d'échec après le début de la copie, préparer une destination vide pour relancer
+la restauration. `--stack-project`, `--fabric-project`, `--fabric-root` et
+`--key-file` permettent de choisir les ressources d'une pile isolée.
+Les sources et le build du chaincode externe doivent correspondre à la
+version du réseau restauré. Rejouer ensuite `scripts/demo.py` sur la pile.
+
+La purge se fait avec un compte admin. Les commandes suivantes ciblent la pile Compose par défaut.
+
+```bash
+docker compose run --rm --no-deps \
+  -v saam-stack_artifact-store:/data/artifacts:rw api \
+  python scripts/purge_case.py --case CASE-UUID --admin-email ADMIN_EMAIL --yes
+
+docker compose run --rm --no-deps api \
+  python scripts/purge_case.py --case CASE-UUID --admin-email ADMIN_EMAIL --verify-only
+```
+
+La seconde commande relit l'inventaire sur Fabric après la suppression SQL et
+affiche les statuts `manquant`. Le terminal demande le mot de passe sans
+l'afficher. Pour un lancement direct, fournir les paramètres de l'API et les
+deux chemins de stockage au processus.
+
 ## Source des données
 
 Utiliser uniquement les données publiques
