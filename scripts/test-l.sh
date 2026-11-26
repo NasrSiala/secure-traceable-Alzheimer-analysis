@@ -161,7 +161,7 @@ run_local() {
     if [[ "${DRY_RUN}" -eq 1 ]]; then
       echo "make: hw/sim"
     else
-      make -C hw/sim
+      bash scripts/test-hw.sh
     fi
   fi
   if [[ -d hw/host/tests ]]; then

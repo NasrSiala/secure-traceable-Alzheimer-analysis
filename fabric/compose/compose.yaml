@@ -177,6 +177,7 @@ services:
       CORE_PEER_LOCALMSPID: Org1MSP
       CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/fabric/msp
       CORE_LEDGER_STATE_STATEDATABASE: goleveldb
+      CORE_LEDGER_HISTORY_ENABLEHISTORYDATABASE: 'true'
       CORE_OPERATIONS_LISTENADDRESS: peer0.org1.example.com:9444
       CORE_METRICS_PROVIDER: prometheus
     command: peer node start
@@ -218,6 +219,7 @@ services:
       CORE_PEER_LOCALMSPID: Org2MSP
       CORE_PEER_MSPCONFIGPATH: /etc/hyperledger/fabric/msp
       CORE_LEDGER_STATE_STATEDATABASE: goleveldb
+      CORE_LEDGER_HISTORY_ENABLEHISTORYDATABASE: 'true'
       CORE_OPERATIONS_LISTENADDRESS: peer0.org2.example.com:9445
       CORE_METRICS_PROVIDER: prometheus
     command: peer node start

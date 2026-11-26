@@ -201,6 +201,11 @@ export function buildApp(options: {
       }
       try {
         const raw = await options.ledger.create(identity, JSON.stringify(request.body));
+        if (options.ledger.receipt) {
+          const receipt = JSON.parse(await options.ledger.receipt(identity, body.artifactId)) as {txId: string; sha256: string};
+          if (!/^[0-9a-f]{64}$/.test(receipt.txId) || receipt.sha256 !== (JSON.parse(raw) as {sha256: string}).sha256) throw new Error("invalid transaction receipt");
+          reply.header("X-Fabric-Transaction-Id", receipt.txId);
+        }
         return reply.code(200).send(JSON.parse(raw) as unknown);
       } catch (error) {
         await sendFailure(reply, "CreateArtifactRecord", error);
@@ -213,6 +218,11 @@ export function buildApp(options: {
       const { id } = request.params as { id: string };
       try {
         const raw = await options.ledger.read(identity, id);
+        if (options.ledger.receipt) {
+          const receipt = JSON.parse(await options.ledger.receipt(identity, id)) as {txId: string; sha256: string};
+          if (!/^[0-9a-f]{64}$/.test(receipt.txId) || receipt.sha256 !== (JSON.parse(raw) as {sha256: string}).sha256) throw new Error("invalid transaction receipt");
+          reply.header("X-Fabric-Transaction-Id", receipt.txId);
+        }
         return reply.code(200).send(JSON.parse(raw) as unknown);
       } catch (error) {
         await sendFailure(reply, "GetArtifactRecord", error);

@@ -24,7 +24,7 @@ import sys
 import types
 import zipfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
@@ -98,9 +98,73 @@ class Recorder:
 @pytest.fixture
 def tcl() -> Recorder:
     tkinter = pytest.importorskip("tkinter", reason="no Tcl interpreter (tkinter) here")
-    interp = tkinter.Tcl()
+    interp = new_tcl_interpreter(tkinter)
     interp.eval(PRELUDE)
     return Recorder(interp)
+
+
+def new_tcl_interpreter(tkinter: Any) -> Tk:
+    """Contourner le défaut transitoire Tcl/Windows déjà rencontré par source().
+
+    Seule l'erreur connue de lecture d'init.tcl est réessayée. Un Tcl absent,
+    une autre erreur ou trois échecs consécutifs restent des erreurs de test.
+    """
+    for attempt in range(3):
+        try:
+            return tkinter.Tcl()
+        except tkinter.TclError as error:
+            if (
+                sys.platform != "win32"
+                or attempt == 2
+                or "init.tcl" not in str(error)
+                or "No error" not in str(error)
+            ):
+                raise
+    raise AssertionError("Initialisation Tcl inachevée")
+
+
+def test_tcl_startup_retries_only_the_transient_windows_read_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeTclError(Exception):
+        pass
+
+    calls = []
+    expected = object()
+
+    def initialize() -> object:
+        calls.append(1)
+        if len(calls) == 1:
+            raise FakeTclError("init.tcl: couldn't read file: No error")
+        return expected
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    fake = types.SimpleNamespace(Tcl=initialize, TclError=FakeTclError)
+    assert new_tcl_interpreter(fake) is expected
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    "message,count", [("init.tcl: No error", 3), ("missing Tcl library", 1)]
+)
+def test_tcl_startup_does_not_hide_persistent_or_other_errors(
+    monkeypatch: pytest.MonkeyPatch, message: str, count: int
+) -> None:
+    class FakeTclError(Exception):
+        pass
+
+    calls = []
+
+    def initialize() -> object:
+        calls.append(1)
+        raise FakeTclError(message)
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    with pytest.raises(FakeTclError, match=message):
+        new_tcl_interpreter(
+            types.SimpleNamespace(Tcl=initialize, TclError=FakeTclError)
+        )
+    assert len(calls) == count
 
 
 @pytest.fixture

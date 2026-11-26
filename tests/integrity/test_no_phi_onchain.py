@@ -19,7 +19,6 @@ a value. Nothing here prints a record, a body or a token.
 from __future__ import annotations
 
 import copy
-import importlib.util
 import json
 import os
 import re
@@ -37,12 +36,13 @@ from pathlib import Path
 import httpx
 import phi_guard
 import pytest
-from conftest import bash_executable
 from fabric_support import assert_ok
 from gateway_history import GatewayHistory, LedgerAccessError, ledger_path
 from phi_guard import ARTIFACT_FIELDS, Violation
 from process_tree import ProcessTree
 from synthetic_case import PIPELINE, clean_history, client_body, synthetic_case_id
+
+from tests.conftest import bash_executable
 
 Records = list[dict[str, object]]
 Mutation = Callable[[Records], None]
@@ -741,13 +741,23 @@ def test_a_failed_history_raises_with_the_status_and_no_body_no_token(
     status: int,
 ) -> None:
     def handler(_request: httpx.Request) -> httpx.Response:
-        return httpx.Response(status, json={"error": {"message": SENTINELS["name"]}})
+        code = {401: "UNAUTHORIZED", 404: "NOT_FOUND"}.get(status, "UNAVAILABLE")
+        return httpx.Response(
+            status,
+            json={
+                "error": {
+                    "code": code,
+                    "message": SENTINELS["name"],
+                    "details": {},
+                }
+            },
+        )
 
     with pytest.raises(LedgerAccessError) as raised:
         _source(handler).case_history(synthetic_case_id("unit"))
 
     message = str(raised.value)
-    assert str(status) in message
+    assert str(502 if status == 500 else status) in message
     assert SENTINELS["name"] not in message
     assert TOKEN not in message
 
@@ -758,7 +768,7 @@ def test_a_reply_that_is_not_a_list_is_not_an_empty_history(payload: object) -> 
         # `json=None` would send no body at all: the JSON `null` is written out.
         return httpx.Response(200, content=json.dumps(payload).encode())
 
-    with pytest.raises(LedgerAccessError, match="not a list"):
+    with pytest.raises(LedgerAccessError, match="502"):
         _source(handler).case_history(synthetic_case_id("unit"))
 
 
@@ -791,19 +801,28 @@ def test_a_case_id_outside_the_documented_form_is_not_sent() -> None:
         _source(handler).case_history("CASE-1/../models")
 
 
-def test_the_http_path_is_the_approved_one_until_ledgerclient_exists() -> None:
-    """Plan l09: without T2.7 (B) the test calls the gateway with httpx. When `saam.ledger`
-    appears this test fails on purpose: switch the guard to LedgerClient (IF-07 `get_case_history`)
-    and update the plan line "Mis à jour" instead of keeping two paths."""
-    try:
-        present = importlib.util.find_spec("saam.ledger") is not None
-    except ModuleNotFoundError:
-        present = False
+def test_the_guard_uses_the_shared_ledgerclient(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Le basculement prévu par l09 appelle réellement IF-07, sans second client HTTP."""
+    from saam.ledger import LedgerClient
 
-    assert ledger_path() == ("ledgerclient" if present else "httpx")
-    assert not present, (
-        "saam.ledger exists: replace the httpx path by LedgerClient (T2.9)"
+    seen = []
+    expected = clean_history("unit")
+
+    def read(client: LedgerClient, case_id: str) -> list[dict[str, object]]:
+        seen.append(case_id)
+        return expected
+
+    monkeypatch.setattr(LedgerClient, "get_case_history", read)
+    assert ledger_path() == "ledgerclient"
+    assert (
+        _source(
+            lambda _: pytest.fail("Le garde ne doit pas contourner IF-07")
+        ).case_history(synthetic_case_id("unit"))
+        == expected
     )
+    assert seen == [synthetic_case_id("unit")]
 
 
 # --------------------------------------------------------------------------------------------
