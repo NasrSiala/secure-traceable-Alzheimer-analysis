@@ -6,6 +6,7 @@
     "node": ">=20.19.0"
   },
   "scripts": {
+    "lint": "node node_modules/eslint/bin/eslint.js . && node node_modules/typescript/bin/tsc --noEmit",
     "build": "node node_modules/typescript/bin/tsc",
     "test": "node node_modules/typescript/bin/tsc --noEmit && node -e \"require('fs').rmSync('dist-test',{recursive:true,force:true})\" && node node_modules/typescript/bin/tsc -p tsconfig.test.json && node node_modules/jest/bin/jest.js --runInBand",
     "start": "node dist/server.js",
@@ -24,6 +25,8 @@
   "devDependencies": {
     "@types/jest": "29.5.14",
     "@types/node": "20.17.6",
+    "@typescript-eslint/parser": "8.73.0",
+    "eslint": "10.15.0",
     "jest": "29.7.0",
     "typescript": "5.6.3"
   },

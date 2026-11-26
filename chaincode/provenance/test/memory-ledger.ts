@@ -6,6 +6,7 @@ import { Context } from "fabric-contract-api";
 export class MemoryStub {
   readonly data = new Map<string, Buffer>();
   readonly events: { name: string; payload: Buffer }[] = [];
+  readonly history = new Map<string, {txId: string; isDelete: boolean; value: Buffer}[]>();
   now = "2026-11-09T18:00:00.000Z";
 
   async getState(key: string): Promise<Uint8Array> {
@@ -14,6 +15,16 @@ export class MemoryStub {
 
   async putState(key: string, value: Uint8Array): Promise<void> {
     this.data.set(key, Buffer.from(value));
+    this.history.set(key, [...(this.history.get(key) ?? []), {txId: "a".repeat(64), isDelete: false, value: Buffer.from(value)}]);
+  }
+
+  async getHistoryForKey(key: string) {
+    const entries = this.history.get(key) ?? [];
+    let index = 0;
+    return {
+      next: async () => index < entries.length ? {done: false, value: entries[index++]} : {done: true},
+      close: async () => undefined,
+    };
   }
 
   getDateTimestamp(): Date {

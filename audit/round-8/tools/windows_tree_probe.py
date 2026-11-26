@@ -24,7 +24,7 @@ if sys.platform != "win32":
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tests" / "integrity"))
 
-from process_tree import ProcessTree
+from process_tree import ProcessTree  # noqa: E402 — après ajout du chemin des aides de test.
 
 BASH = r"C:\Program Files\Git\bin\bash.exe"
 
