@@ -201,6 +201,29 @@ export class Provenance extends Contract {
     return JSON.stringify(orderParentToChild(records));
   }
 
+  @Transaction(false)
+  public async GetArtifactReceipt(ctx: Context, artifactId: string): Promise<string> {
+    requireUuid(artifactId, "artifactId");
+    const stored = await ctx.stub.getState(artifactId);
+    if (stored.length === 0) fail("NOT_FOUND", "artifact does not exist");
+    const record = parseStoredArtifact(stored);
+    const iterator = await ctx.stub.getHistoryForKey(artifactId);
+    try {
+      const first = await iterator.next();
+      if (first.done || !first.value || first.value.isDelete ||
+          !/^[0-9a-f]{64}$/.test(first.value.txId)) {
+        fail("INTEGRITY", "artifact transaction receipt is unavailable");
+      }
+      const historical = parseStoredArtifact(first.value.value);
+      if (historical.artifactId !== artifactId || historical.sha256 !== record.sha256) {
+        fail("INTEGRITY", "artifact receipt does not match the stored record");
+      }
+      return JSON.stringify({ txId: first.value.txId, sha256: record.sha256 });
+    } finally {
+      await iterator.close();
+    }
+  }
+
   @Transaction()
   public async RegisterModel(ctx: Context, json: string): Promise<string> {
     // Same order as CreateArtifactRecord: the role first, so that a caller without it learns
