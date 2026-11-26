@@ -21,6 +21,43 @@ CASE = "CASE-" + ID
 TOKEN = "test-agent-token-" + secrets.token_hex(16)
 
 
+def test_read_timeout_override_is_per_request_and_preserves_default() -> None:
+    requests = []
+
+    def respond(request):
+        requests.append(request)
+        return httpx.Response(200, json=[] if "/cases/" in request.url.path else {})
+
+    with LedgerClient(
+        "http://gateway", TOKEN, timeout=4, transport=httpx.MockTransport(respond)
+    ) as client:
+        client.get_case_history(CASE, timeout=0.5)
+        client.get_record(ID, timeout=0.25)
+        client.get_record(ID)
+    assert [request.extensions["timeout"]["read"] for request in requests] == [
+        0.5,
+        0.25,
+        4,
+    ]
+
+
+@pytest.mark.parametrize(
+    "method,argument", [("get_record", ID), ("get_case_history", CASE)]
+)
+@pytest.mark.parametrize("timeout", [0, -1, float("nan"), float("inf")])
+def test_read_timeout_override_rejects_invalid_budget_before_transport(
+    method, argument, timeout
+) -> None:
+    def forbidden(request):
+        pytest.fail("Aucun appel HTTP avec un budget invalide.")
+
+    with LedgerClient(
+        "http://gateway", TOKEN, transport=httpx.MockTransport(forbidden)
+    ) as client:
+        with pytest.raises(ValueError):
+            getattr(client, method)(argument, timeout=timeout)
+
+
 def artifact(identifier=ID):
     return {
         "artifactId": identifier,

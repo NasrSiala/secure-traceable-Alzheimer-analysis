@@ -618,6 +618,42 @@ chiffrés. Elle mesure aussi 500 lectures avec cinq comptes simultanés,
 en exigeant un p95 ≤ 300 ms sur l'API locale. Ce test passe par TestClient ;
 la mesure réseau sur la machine de démonstration reste à T5.4.
 
+## Historique Fabric — T4.2
+
+`GET /api/v1/cases/{id}/history` accepte l'UUID ou `CASE-<uuid>`, avec le JWT
+d'un operator, auditor ou admin. Il vérifie d'abord l'existence du cas en
+base, puis lit `GetCaseHistory` via `LedgerClient`, sous l'identité de
+service `verifier`. Le JWT utilisateur n'est pas transmis à la passerelle.
+
+La réponse est un tableau ordonné parent → enfant, avec les champs Fabric
+`artifactId`, `caseId`, `artifactType`, `sha256`, `createdAt`, `txTimestamp`,
+`softwareVersion`, `modelVersion`, `parentArtifactId`, `offchainRef`,
+`creatorMspId`, `creatorId`, `creatorAgent`, `docType` et `txId`.
+`txId` vient du reçu Fabric lu via `GetArtifactRecord`/`GetArtifactReceipt` ;
+c'est une métadonnée de réponse de l'API, pas un ajout au schéma on-chain.
+Les copies d'empreintes et de reçus PostgreSQL ne servent pas de repli.
+Un historique vide ou partiel reste disponible pendant le traitement.
+
+Un cas inconnu renvoie 404 `NOT_FOUND` sans appeler Fabric. Une panne de
+passerelle, un reçu absent ou incohérent, un historique invalide ou le
+dépassement du délai global de dix secondes renvoie 502
+`LEDGER_UNAVAILABLE` avec le message S-05 :
+« Registre blockchain injoignable — historique indisponible. Réessayer. »
+Une panne PostgreSQL renvoie 503 `SERVICE_UNAVAILABLE`. Les réponses sont
+privées (`Cache-Control: no-store`), les erreurs ne contiennent ni jeton
+ni réponse brute. Chaque requête ferme son client HTTP ; le budget restant
+est transmis aux lectures successives, sans réessai implicite.
+
+```powershell
+uv run --locked pytest tests/api/test_history.py tests/api/test_pipeline_flow.py tests/ledger/test_client.py -q
+```
+
+Cette validation utilise PostgreSQL/JWT réels, des transports contrôlés
+pour les pannes et le parcours complet Fastify/contrat TypeScript avec
+état et certificats Fabric en mémoire. Elle ne remplace pas une validation
+sur un réseau Fabric déployé. La vérification des fichiers hors chaîne
+reste à T4.1.
+
 ## Source des données
 
 Utiliser uniquement les données publiques

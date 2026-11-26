@@ -10,7 +10,9 @@ from uuid import uuid4
 
 import psycopg
 import pytest
+from fastapi.testclient import TestClient
 
+from saam.api.main import create_app
 from saam.cases import CaseService
 from saam.ledger import LedgerClient
 from saam.pipeline.graph import STAGES, GraphRunner
@@ -148,6 +150,30 @@ def test_creation_to_seven_anchors_and_readable_journal(
         ).fetchall()
     assert len(rows) == 7 and all(row["anchor_status"] == "ancre" for row in rows)
     assert {row["tx_id"] for row in rows} == receipts
+    with TestClient(
+        create_app(
+            identity=client.app.state.identity,
+            ledger_factory=lambda: LedgerClient(url, tokens["verifier"]),
+        ),
+        base_url="https://testserver",
+        client=("127.0.0.1", 50001),
+    ) as provenance_client:
+        for role in ("operator", "admin", "auditor"):
+            provenance = provenance_client.get(
+                f"/api/v1/cases/CASE-{case_id}/history",
+                headers=headers(provenance_client, role),
+            )
+            assert provenance.status_code == 200
+            assert [row["creatorAgent"] for row in provenance.json()] == list(STAGES)
+            assert {row["txId"] for row in provenance.json()} == receipts
+            assert all(
+                row["sha256"] == records[row["artifactId"]]["sha256"]
+                for row in provenance.json()
+            )
+            assert "SYNTHETIC-REPORT-MARKER" not in provenance.text
+        assert (
+            provenance_client.get(f"/api/v1/cases/{case_id}/history").status_code == 401
+        )
     client.app.state.artifact_reader = ArtifactReader(store)
     detail = client.get(f"/api/v1/cases/{case_id}", headers=authorization)
     assert detail.status_code == 200

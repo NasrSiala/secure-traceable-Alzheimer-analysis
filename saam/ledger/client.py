@@ -168,10 +168,16 @@ class LedgerClient:
         payload: Mapping[str, Any] | None = None,
         *,
         history: bool = False,
+        timeout: float | None = None,
     ) -> Record | list[Record]:
+        if timeout is not None and (not math.isfinite(timeout) or timeout <= 0):
+            raise ValueError("Délai HTTP positif requis.")
         try:
             response = self._http.request(
-                method, path, json=dict(payload) if payload is not None else None
+                method,
+                path,
+                json=dict(payload) if payload is not None else None,
+                timeout=httpx.USE_CLIENT_DEFAULT if timeout is None else timeout,
             )
         except httpx.HTTPError:
             raise LedgerUnavailable() from None
@@ -214,15 +220,21 @@ class LedgerClient:
         assert isinstance(result, dict)
         return result
 
-    def get_record(self, artifact_id: str) -> Record:
+    def get_record(self, artifact_id: str, *, timeout: float | None = None) -> Record:
         identifier = checked_segment(artifact_id, UUID_PATTERN)
-        result = self._request("GET", f"/ledger/artifacts/{identifier}")
+        result = self._request(
+            "GET", f"/ledger/artifacts/{identifier}", timeout=timeout
+        )
         assert isinstance(result, dict)
         return result
 
-    def get_case_history(self, case_id: str) -> list[Record]:
+    def get_case_history(
+        self, case_id: str, *, timeout: float | None = None
+    ) -> list[Record]:
         identifier = checked_segment(case_id, "CASE-" + UUID_PATTERN)
-        result = self._request("GET", f"/ledger/cases/{identifier}", history=True)
+        result = self._request(
+            "GET", f"/ledger/cases/{identifier}", history=True, timeout=timeout
+        )
         assert isinstance(result, list)
         return result
 
