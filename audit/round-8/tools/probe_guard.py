@@ -15,8 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "tests" / "integrity"))
 
-import phi_guard
-from synthetic_case import clean_history
+import phi_guard  # noqa: E402 — après ajout du chemin des aides de test.
+from synthetic_case import clean_history  # noqa: E402 — après ajout du chemin des aides de test.
 
 CASES = [
     # (label, value, expected to be flagged by the project's own policy)

@@ -14,6 +14,9 @@
 #
 # T1.10 (B) adds the CI job; this file is the local flow until then.
 
+TEST ?= sha256
+ROOT := $(abspath ../..)
+
 SIM_DIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 CORE    := $(SIM_DIR)/../rtl/sha256_core.vhd
 TB      := $(SIM_DIR)/sha256_core_tb.vhd
@@ -50,7 +53,7 @@ else
 endif
 
 cocotb:
-	@$(MAKE) -f $(SIM_DIR)/cocotb.mk
+	@cd "$(ROOT)" && uv run --locked $(MAKE) -f $(SIM_DIR)/cocotb.mk TEST="$(TEST)"
 
 xsim:
 	mkdir -p $(BUILD)

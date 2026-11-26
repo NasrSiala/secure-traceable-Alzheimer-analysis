@@ -13,6 +13,7 @@ const CALL_DEADLINE_MS = 30_000;
 export interface ArtifactLedger {
   create(identity: string, payload: string): Promise<string>;
   read(identity: string, artifactId: string): Promise<string>;
+  receipt?(identity: string, artifactId: string): Promise<string>;
   close(): void;
 }
 
@@ -175,6 +176,7 @@ export async function connectLedger(
   return {
     create: (identity, payload) => submit(identity, "CreateArtifactRecord", payload),
     read: (identity, artifactId) => evaluate(identity, "GetArtifactRecord", artifactId),
+    receipt: (identity, artifactId) => evaluate(identity, "GetArtifactReceipt", artifactId),
     history: (identity, caseId) => evaluate(identity, "GetCaseHistory", caseId),
     registerModel: (identity, payload) => submit(identity, "RegisterModel", payload),
     getModel: (identity, name, version) => evaluate(identity, "GetModel", name, version),

@@ -1,35 +1,24 @@
-"""How the NFR-03 guard reaches the ledger: the gateway of IF-09, over HTTP, with `httpx`.
-
-Plan l09: the guard goes through `LedgerClient` (`saam.ledger`, T2.7, role B). Until that library
-exists the approved path is this one, an `httpx` client of the documented routes (TRD 8.2):
-`POST /ledger/artifacts` and `GET /ledger/cases/{caseId}`, authenticated by `X-Agent-Token`.
-
-An error never carries a body, a URL or a token: the gateway's answer can hold the words of a
-chaincode refusal, and the guard handles data that must not be printed.
-"""
+"""Accès du garde NFR-03 au registre via le client partagé IF-07 (T2.7)."""
 
 from __future__ import annotations
 
-import importlib.util
 import re
 from typing import Any
 
 import httpx
 
-_CASE_ID = re.compile(r"^CASE-[0-9a-f-]{36}$")
+from saam.ledger import LedgerClient, LedgerError
+
+_CASE_ID = re.compile(r"CASE-[0-9a-f-]{36}")
 
 
 class LedgerAccessError(Exception):
-    """The ledger could not be read or written. The message has no body, URL or token."""
+    """Le registre est inaccessible ; message sans corps, URL ou jeton."""
 
 
 def ledger_path() -> str:
-    """`ledgerclient` when `saam.ledger` can be imported, else `httpx` (the approved fallback)."""
-    try:
-        found = importlib.util.find_spec("saam.ledger") is not None
-    except ModuleNotFoundError:
-        found = False
-    return "ledgerclient" if found else "httpx"
+    """Le garde utilise exclusivement LedgerClient (IF-07)."""
+    return "ledgerclient"
 
 
 class GatewayHistory:
@@ -46,46 +35,28 @@ class GatewayHistory:
         self._transport = transport
         self._timeout = timeout
 
-    def _request(
-        self, method: str, path: str, *, body: dict[str, object] | None = None
-    ) -> httpx.Response:
-        try:
-            # trust_env=False: the gateway is called directly. With the default, an
-            # HTTP_PROXY of the environment would carry the token and the records to the proxy
-            # (AUD-110).
-            with httpx.Client(
-                transport=self._transport, timeout=self._timeout, trust_env=False
-            ) as client:
-                return client.request(
-                    method,
-                    f"{self._base_url}{path}",
-                    headers={"X-Agent-Token": self.token},
-                    json=body,
-                )
-        except httpx.HTTPError:
-            raise LedgerAccessError("the gateway could not be reached") from None
+    def _client(self) -> LedgerClient:
+        return LedgerClient(
+            self._base_url, self.token, transport=self._transport, timeout=self._timeout
+        )
 
     def case_history(self, case_id: str) -> list[Any]:
-        """`GET /ledger/cases/{caseId}`: the records of a case, as the gateway returns them."""
-        if not _CASE_ID.match(case_id):
+        """Lit l'historique, ou refuse toute réponse illisible/non vérifiable."""
+        if not _CASE_ID.fullmatch(case_id):
             raise ValueError("case id outside the documented form")
-        response = self._request("GET", f"/ledger/cases/{case_id}")
-        if response.status_code != 200:
-            raise LedgerAccessError(
-                f"GET /ledger/cases answered {response.status_code}"
-            )
         try:
-            payload: object = response.json()
-        except ValueError:
+            with self._client() as client:
+                return client.get_case_history(case_id)
+        except LedgerError as error:
             raise LedgerAccessError(
-                "GET /ledger/cases answered a body that is not JSON"
+                f"GET /ledger/cases answered {error.status}"
             ) from None
-        if not isinstance(payload, list):
-            raise LedgerAccessError(
-                "GET /ledger/cases answered a body that is not a list"
-            )
-        return payload
 
     def create_artifact(self, body: dict[str, object]) -> int:
-        """`POST /ledger/artifacts`: the status of the answer (200 stored, 400 refused, ...)."""
-        return self._request("POST", "/ledger/artifacts", body=body).status_code
+        """Écriture : statut IF-09 sans exposer le contenu d'une erreur."""
+        try:
+            with self._client() as client:
+                client.create_record(body)
+            return 200
+        except LedgerError as error:
+            return error.status
