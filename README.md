@@ -654,6 +654,26 @@ pour les pannes et le parcours complet Fastify/contrat TypeScript avec
 sur un réseau Fabric déployé. La vérification des fichiers hors chaîne
 reste à T4.1.
 
+## Validation du pipeline intégré — T3.17
+
+Après intégration de T3.12, démarrer la pile de test avec les agents réels,
+Fabric, un modèle actif enregistré et une configuration active. Préparer
+un compte opérateur et le certificat HTTPS comme pour la démo. Le test
+crée cinq cas dans cette pile.
+
+```powershell
+$env:PTBXL_ROOT = "C:\datasets\ptb-xl\1.0.3"
+$env:SAAM_TEST_PIPELINE = "1"
+uv run --locked pytest tests/integration/test_pipeline.py -k test_pipeline_fold_10 -q -s
+```
+
+Le dossier PTB-XL doit contenir `ptbxl_database.csv` et `records500/`. Le
+test sélectionne cinq ECG du fold 10, les traite en séquence et compare
+les reçus Fabric aux versions et empreintes des manifestes. Il affiche
+la durée de chaque cas, mesurée entre sa création et la confirmation de
+l'ancrage final. Pour cinq cas, le p95 calculé au rang le plus proche est
+la durée la plus longue.
+
 ## Registre des modèles et des seuils — T4.7
 
 Dans la pile de démo, l'administrateur peut créer une configuration inactive,
