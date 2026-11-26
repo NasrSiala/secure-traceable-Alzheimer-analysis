@@ -151,3 +151,22 @@ def case_purged(
         actor=admin_id,
         payload={"case_id": case_id, "nb_artefacts": count},
     )
+
+
+def validation_config_created(
+    db: psycopg.Connection[dict[str, Any]], admin_id: str, version: int
+) -> None:
+    _append(
+        db, "validation_config_created", actor=admin_id, payload={"version": version}
+    )
+
+
+def model_activated(
+    db: psycopg.Connection[dict[str, Any]], admin_id: str, name: str, version: str
+) -> None:
+    _append(
+        db,
+        "model_activated",
+        actor=admin_id,
+        payload={"name": name, "version": version},
+    )

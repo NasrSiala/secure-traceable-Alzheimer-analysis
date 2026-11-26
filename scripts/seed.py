@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from saam.identity.seed import SeedAccount, seed_accounts  # noqa: E402
+from saam.registry.management import CONFIG_LOCK  # noqa: E402
 from saam.registry.seed import seed_configuration  # noqa: E402
 
 
@@ -34,7 +35,7 @@ def seed(values: dict[str, str]) -> None:
     if not url:
         raise ValueError("DATABASE_URL_API est requise.")
     with psycopg.connect(url, connect_timeout=3) as connection:
-        connection.execute("SELECT pg_advisory_xact_lock(7219021)")
+        connection.execute("SELECT pg_advisory_xact_lock(%s)", (CONFIG_LOCK,))
         admin_id = seed_accounts(connection, accounts)
         seed_configuration(connection, admin_id)
 

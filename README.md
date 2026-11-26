@@ -654,6 +654,25 @@ pour les pannes et le parcours complet Fastify/contrat TypeScript avec
 sur un réseau Fabric déployé. La vérification des fichiers hors chaîne
 reste à T4.1.
 
+## Registre des modèles et des seuils — T4.7
+
+Dans la pile de démo, l'administrateur peut créer une configuration inactive,
+puis l'activer après confirmation. Le CLI invite à saisir le mot de passe du
+compte indiqué par `--admin-email`.
+
+```bash
+docker compose exec api python scripts/registry.py --admin-email ADMIN_EMAIL \
+  config new --conf-high 0.7 --quality-min 0.9 --lexicon v1
+docker compose exec api python scripts/registry.py --admin-email ADMIN_EMAIL config activate 2
+docker compose exec api python scripts/registry.py --admin-email ADMIN_EMAIL model list
+docker compose exec api python scripts/registry.py --admin-email ADMIN_EMAIL model activate ecg-cnn1d 1.0.0
+```
+
+Utiliser le numéro affiché par `config new` et la version voulue parmi les
+modèles enregistrés. L'activation vérifie l'ancrage du modèle sur Fabric et
+s'applique aux cas créés ensuite. Chaque cas existant conserve les versions
+qui lui étaient associées à sa création.
+
 ## Sauvegarde, restauration et purge — T5.7
 
 La sauvegarde regroupe un `pg_dump`, les volumes des artefacts et des uploads
