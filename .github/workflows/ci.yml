@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main, backend]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hashing:
+    name: hashing (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer uv et Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.8'
+          python-version: '3.11'
+          enable-cache: true
+
+      - name: Installer les dépendances verrouillées
+        run: uv sync --locked
+
+      - name: Vérifier le même manifeste et son empreinte sur deux OS
+        run: uv run --locked pytest tests/hashing -q
+
+  hw-sim:
+    name: hw-sim
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer GHDL et Make
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghdl make
+          ghdl --version
+
+      - name: Installer uv et Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.8'
+          python-version: '3.11'
+          enable-cache: true
+
+      - name: Installer les dépendances verrouillées
+        run: uv sync --locked
+
+      - name: Simuler le VHDL avec cocotb
+        env:
+          SAAM_HW_SIM_REQUIRED: '1'
+        run: uv run --locked make -C hw/sim
+
+  validation:
+    name: validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.20.2'
+          cache: npm
+          cache-dependency-path: |
+            chaincode/provenance/package-lock.json
+            ledger-gateway/package-lock.json
+
+      - name: Installer uv et Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: '0.13.8'
+          python-version: '3.11'
+          enable-cache: true
+
+      - name: Installer les dépendances verrouillées
+        run: |
+          uv sync --locked
+          npm ci --ignore-scripts --prefix chaincode/provenance
+          npm ci --ignore-scripts --prefix ledger-gateway
+
+      - name: Installer GHDL et Make pour la suite complète
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghdl make
+
+      - name: Vérifier le code Python
+        run: |
+          uv run --locked ruff check .
+          uv run --locked ruff format --check .
+          uv run --locked mypy saam
+
+      - name: Vérifier le code TypeScript
+        run: |
+          npm run lint --prefix chaincode/provenance
+          npm run lint --prefix ledger-gateway
+
+      - name: Vérifier les frontières et les privilèges
+        run: |
+          uv run --locked lint-imports --no-cache
+          uv run --locked pytest tests/arch tests/db/test_grants.py -q
+
+      - name: Tester Python et TypeScript
+        run: bash scripts/test-l.sh
+
+      - name: Construire les images sans publication
+        env:
+          DOCKER_BUILDKIT: '1'
+        run: |
+          docker build --target backend-base --tag saam-backend-base:${GITHUB_SHA} .
+          docker build --target api --tag saam-api:${GITHUB_SHA} .
+          docker build --target worker --tag saam-worker:${GITHUB_SHA} .
+          docker build --target ledger-gateway --tag saam-ledger-gateway:${GITHUB_SHA} .
+          docker build --target chaincode --tag saam-chaincode:${GITHUB_SHA} .
+          docker build --target frontend --tag saam-frontend:${GITHUB_SHA} .

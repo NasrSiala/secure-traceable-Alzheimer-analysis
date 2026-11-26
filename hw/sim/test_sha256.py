@@ -4,18 +4,18 @@ Needs GHDL and cocotb: `make -C hw/sim cocotb` (or the default target when both 
 run by the repository tests (tests/scripts/test_sha256_core.py only checks its structure); the
 VHDL testbench sha256_core_tb.vhd is the reference run in Vivado xsim.
 
-The oracle is `hashlib.sha256` (ADR-12: one source of truth). The core does not pad: the bench pads
+The oracle is `saam.hashing.file_hash` (SHA-256 via hashlib) (ADR-12: one source of truth). The core does not pad: the bench pads
 with sha_support.padded_blocks and feeds 16 big-endian words per block.
 """
 
 from __future__ import annotations
 
-import hashlib
-
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles, RisingEdge
 from sha_support import block_words, digest_hex, padded_blocks
+
+from saam.hashing import file_hash
 
 # 64 round cycles and one cycle to add the working variables to H: busy lasts 65 cycles.
 BLOCK_CYCLES = 65
@@ -114,9 +114,7 @@ async def fips_vectors_match_hashlib(dut) -> None:  # type: ignore[no-untyped-de
     """AC-15.1: "abc", 448 bits and 896 bits, one and two blocks."""
     await start(dut)
     for name, message in FIPS.items():
-        assert (
-            await hash_message(dut, message) == hashlib.sha256(message).hexdigest()
-        ), name
+        assert await hash_message(dut, message) == file_hash(message), name
 
 
 @cocotb.test()
@@ -126,9 +124,7 @@ async def two_messages_in_sequence(dut) -> None:  # type: ignore[no-untyped-def]
     order = ["abc", "896 bits", "448 bits", "abc", "448 bits", "896 bits"]
     for name in order:
         message = FIPS[name]
-        assert (
-            await hash_message(dut, message) == hashlib.sha256(message).hexdigest()
-        ), name
+        assert await hash_message(dut, message) == file_hash(message), name
 
 
 @cocotb.test()
@@ -150,7 +146,7 @@ async def reset_during_the_load_recovers(dut) -> None:  # type: ignore[no-untype
     await reset(dut)
     assert int(dut.busy.value) == 0 and int(dut.done.value) == 0
     message = FIPS["448 bits"]
-    assert await hash_message(dut, message) == hashlib.sha256(message).hexdigest()
+    assert await hash_message(dut, message) == file_hash(message)
 
 
 @cocotb.test()
@@ -166,17 +162,13 @@ async def reset_during_the_rounds_recovers(dut) -> None:  # type: ignore[no-unty
     assert int(dut.word_ready.value) == 1
     for name in ("abc", "896 bits"):
         message = FIPS[name]
-        assert (
-            await hash_message(dut, message) == hashlib.sha256(message).hexdigest()
-        ), name
+        assert await hash_message(dut, message) == file_hash(message), name
 
 
 @cocotb.test()
 async def done_is_cleared_by_init(dut) -> None:  # type: ignore[no-untyped-def]
     await start(dut)
-    assert (
-        await hash_message(dut, FIPS["abc"]) == hashlib.sha256(FIPS["abc"]).hexdigest()
-    )
+    assert await hash_message(dut, FIPS["abc"]) == file_hash(FIPS["abc"])
     await ClockCycles(dut.aclk, 5)
     assert int(dut.done.value) == 1 and int(dut.word_ready.value) == 1
     await pulse_init(dut)
